@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Rápida: Transiciones Fluidas - Academia Smart</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1E293B;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #F8FAFC;
+        }
+        /* Barra superior estilo Web Smart */
+        .navbar-smart {
+            background: linear-gradient(90deg, #A71C1C 0%, #7A1212 100%);
+            padding: 15px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .navbar-smart .logo-box {
+            display: flex;
+            align-items: center;
+            height: 75px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        .navbar-smart .logo-box img {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+        .navbar-smart .tagline {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            opacity: 0.95;
+            letter-spacing: 0.5px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .page-card {
+            background: #FFFFFF;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+        h1, h2, h3 {
+            font-family: 'Poppins', sans-serif;
+            color: #7A1212;
+        }
+        .main-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            color: #64748B;
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 35px auto;
+        }
+        .danger-zone {
+            background-color: #FEF2F2;
+            border-left: 5px solid #DC2626;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+        }
+        .danger-zone h3 {
+            color: #991B1B;
+            margin-top: 0;
+        }
+        .danger-list {
+            margin: 0;
+            padding-left: 20px;
+            color: #991B1B;
+            font-style: italic;
+        }
+        /* Grid de Estrategias estilo Web */
+        .grid-strategies {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .card-smart {
+            background: #FFFFFF;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            border: 1px solid #E2E8F0;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-image-box {
+            width: 100%;
+            height: 200px;
+            background-color: #EDF2F7;
+            overflow: hidden;
+            position: relative;
+        }
+        .card-image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .card-content {
+            padding: 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-content h3 {
+            font-size: 1.3rem;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #1E293B;
+            border-bottom: 2px solid #7A1212;
+            padding-bottom: 5px;
+            display: inline-block;
+        }
+        .card-content p strong {
+            color: #475569;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            display: block;
+            margin-top: 8px;
+        }
+        .template {
+            background: #F8FAFC;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border-left: 3px solid #DC2626;
+            font-size: 0.95rem;
+            margin-top: auto;
+            color: #334155;
+        }
+        /* Secciones finales */
+        .connectors-section {
+            background: #7A1212;
+            color: white;
+            padding: 35px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+        }
+        .connectors-section h2 {
+            color: white;
+            margin-top: 0;
+        }
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .chip {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .checklist-box {
+            background: #F1F5F9;
+            border: 1px solid #E2E8F0;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 35px;
+        }
+        .checklist-box h3 {
+            color: #1E293B;
+            margin-top: 0;
+        }
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .check-item input {
+            margin-top: 5px;
+            accent-color: #DC2626;
+            transform: scale(1.2);
+        }
+
+        /* Caja de Configuración GEM */
+        .gem-section {
+            background: #FFFFFF;
+            border: 2px dashed #7A1212;
+            padding: 35px;
+            border-radius: 12px;
+            margin-top: 50px;
+            margin-bottom: 40px;
+        }
+        .gem-section h2 {
+            margin-top: 0;
+            color: #7A1212;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.6rem;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 10px;
+        }
+        .gem-meta {
+            background-color: #F8FAFC;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #E2E8F0;
+        }
+        .gem-meta p {
+            margin: 5px 0;
+            font-size: 0.95rem;
+        }
+        .gem-meta strong {
+            color: #7A1212;
+        }
+        .gem-prompt-box {
+            background: #1E293B;
+            color: #F1F5F9;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 350px;
+            border-left: 5px solid #DC2626;
+            margin-bottom: 25px;
+        }
+        .download-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .download-btn {
+            background: #F1F5F9;
+            border: 1px solid #CBD5E1;
+            color: #334155;
+            padding: 10px;
+            text-align: center;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: block;
+        }
+        .download-btn:hover {
+            background: #7A1212;
+            color: white;
+            border-color: #7A1212;
+        }
+
+        /* NUEVA SECCIÓN: Contenedor del Video Tutorial */
+        .video-section {
+            background: #F1F5F9;
+            border: 1px solid #E2E8F0;
+            padding: 30px;
+            border-radius: 12px;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .video-section h2 {
+            margin-top: 0;
+            color: #1E293B;
+            font-size: 1.5rem;
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* Relación de aspecto de video 16:9 estándar */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            background: #000000;
+            margin-top: 20px;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        .video-print-fallback {
+            display: none; /* Solo visible al imprimir */
+            background: #FFFFFF;
+            border: 1px solid #CBD5E1;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        .video-print-fallback a {
+            color: #DC2626;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .footer-banner {
+            text-align: center;
+            background: #1E293B;
+            color: #FFFFFF;
+            padding: 22px;
+            border-radius: 8px;
+            font-size: 1rem;
+            border-bottom: 5px solid #DC2626;
+        }
+        .footer-banner span {
+            color: #EF4444;
+            font-weight: 700;
+        }
+        @media print {
+            body { background: white; }
+            .container { max-width: 100%; margin: 0; padding: 0; }
+            .page-card { box-shadow: none; padding: 10px; }
+            .grid-strategies { grid-template-columns: 1fr; }
+            .card-image-box { height: 150px; }
+            .navbar-smart { background: #7A1212 !important; -webkit-print-color-adjust: exact; }
+            .gem-section { display: none; }
+            /* Ajustes de video para impresión física */
+            .video-wrapper { display: none; }
+            .video-print-fallback { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar-smart">
+    <div class="logo-box">
+        <img src="logo.png" alt="Academia de Idiomas Smart">
+    </div>
+    <div class="tagline">Metodología de Excelencia Docente</div>
+</div>
+
+<div class="container">
+    <div class="page-card">
+        <h1 class="main-title">Cómo Dominar las Transiciones Fluidas</h1>
+        <p class="subtitle">Guía práctica para conectar objetivos comunicativos sin romper el hilo conductor y potenciar tu evaluación institucional.</p>
+
+        <div class="danger-zone">
+            <h3>🛑 El Diagnóstico: ¿Qué debemos evitar?</h3>
+            <p>Para lograr una conexión sutil, primero debemos eliminar las rupturas drásticas en el aula:</p>
+            <ul class="danger-list">
+                <li>“Well, we have finished this class. now let's move to the class X”.</li>
+                <li>“Ready, next topic. Let's check grammar”.</li>
+                <li>“Time is done for this activity, let's pass to the other”.</li>
+            </ul>
+        </div>
+
+        <h2 style="margin-bottom: 25px; font-weight: 700; text-align: center;">🛠️ Las 4 Estrategias de Conexión</h2>
+        
+        <div class="grid-strategies">
+            
+            <div class="card-smart">
+                <div class="card-image-box">
+                    <img src="estrategia1.png" alt="Estrategia 1 - El Puente de Causa y Efecto">
+                </div>
+                <div class="card-content">
+                    <h3>1. El Puente de Causa y Efecto</h3>
+                    <p><strong>Principio:</strong> El cierre de la Clase A siembra de forma obligatoria la necesidad de abrir la Clase B.</p>
+                    <p><strong>Cómo hacerlo:</strong> Usa los últimos minutos para lanzar una pregunta o un reto que solo se resuelva con la nueva estructura.</p>
+                    <div class="template">“¡Excellent! We accomplished to [Logro A]. But now we have the real deal: ¿how do we do to [Objetivo B]? Let's discover it on the page...”</div>
+                </div>
+            </div>
+
+            <div class="card-smart">
+                <div class="card-image-box">
+                    <img src="estrategia2.png" alt="Estrategia 2 - Enfoque de Macro-Misión">
+                </div>
+                <div class="card-content">
+                    <h3>2. Enfoque de "Macro-Misión"</h3>
+                    <p><strong>Principio:</strong> Todo el bloque de 6 clases se desarrolla dentro de un gran caso real o proyecto del día.</p>
+                    <p><strong>Cómo hacerlo:</strong> Presenta la meta global al inicio. Introduce cada nuevo tema como el siguiente paso indispensable para completar el reto.</p>
+                    <div class="template">“We have finished the first step that was [Tema 1], to continue the journey we need the tools that we have on the page x...”</div>
+                </div>
+            </div>
+
+            <div class="card-smart">
+                <div class="card-image-box">
+                    <img src="estrategia3.png" alt="Estrategia 3 - Reciclaje por el Estudiante">
+                </div>
+                <div class="card-content">
+                    <h3>3. Reciclaje por el Estudiante</h3>
+                    <p><strong>Principio:</strong> La última participación de tus estudiantes se convierte de inmediato en la introducción de la nueva clase.</p>
+                    <p><strong>Cómo hacerlo:</strong> Escucha los closures, extrae una idea clave que haya dicho un estudiante y úsala de puente hacia el siguiente tema.</p>
+                    <div class="template">“[Nombre] talked about a crucial point: [Opinión]. For everyone of us to learn how to formulate the same idea in a correct way, we are going to check the examples on ...”</div>
+                </div>
+            </div>
+
+            <div class="card-smart">
+                <div class="card-image-box">
+                    <img src="estrategia4.png" alt="Estrategia 4 - Anclaje Visual">
+                </div>
+                <div class="card-content">
+                    <h3>4. Anclaje Visual y de Material</h3>
+                    <p><strong>Principio:</strong> Ubicar al estudiante en el libro de forma narrativa e integrada, sin dar órdenes mecánicas.</p>
+                    <p><strong>Cómo hacerlo:</strong> Conecta lo que ven proyectado o en el tablero con los elementos gráficos de la página de destino.</p>
+                    <div class="template">“Look at this situation on the screen... that is the same dilemma that the characters on the page 34 have, so let's check that...”</div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="connectors-section">
+            <h2>🗣️ Banco de "Frases Pegamento"</h2>
+            <p>Úsalas en tu planeación diaria para que tu discurso fluya de forma natural:</p>
+            <div class="chips-container">
+                <div class="chip">"This makes the link to our next challenge..."</div>
+                <div class="chip">"Now that we know the vocabulary, let's use it for real with the next examples..."</div>
+                <div class="chip">"To level up this that we have learned let's use it with the next examples..."</div>
+                <div class="chip">"Take a look on the page x, that is where we are going to use this..."</div>
+            </div>
+        </div>
+
+        <div class="checklist-box">
+            <h3>📝 Checklist de Planeación</h3>
+            <p>Verifica estos tres pilares estratégicos antes de iniciar tus bloques de clase:</p>
+            <div class="check-item">
+                <input type="checkbox">
+                <label>¿Tengo clara la relación lógica y el porqué un tema va exactamente después del otro?</label>
+            </div>
+            <div class="check-item">
+                <input type="checkbox">
+                <label>¿Diseñé y escribí la frase puente específica que usaré para cambiar de enfoque?</label>
+            </div>
+            <div class="check-item">
+                <input type="checkbox">
+                <label>¿Sé en qué página o sección interactuarán y cómo los guiaré allí de forma sutil?</label>
+            </div>
+        </div>
+
+        <div class="gem-section">
+            <h2>🤖 Automatiza tu Planeación: Configura tu Asistente de IA</h2>
+            <p>Copia los siguientes parámetros de personalización para crear tu propio **GEM** personalizado y automatizar el diseño de tus celdas de transiciones en segundos:</p>
+            
+            <div class="gem-meta">
+                <p><strong>Nombre del GEM:</strong> LINKIN' PLAN (I DON'T KNOW WHY)</p>
+                <p><strong>Descripción:</strong> Eres un Asistente de Planeación Académica y Mentor de Docentes experto en la metodología Smart. Tu único objetivo es ayudar al usuario a diseñar transiciones fluidas y naturales entre clases consecutivas (bloques de hasta 6 clases), asegurando que se perciban como un único hilo conductor y eliminando cambios bruscos de tema.</p>
+            </div>
+
+            <p><strong>Instrucciones (System Prompt) para pegar en tu IA:</strong></p>
+            <div class="gem-prompt-box">You are an expert Academic Planning Assistant and Teacher Mentor for Smart methodology. Your sole purpose is to help the user design seamless, fluid transitions between consecutive classes (blocks of up to 6 classes), ensuring they feel like a single, cohesive learning journey and eliminating abrupt topic changes.
+
+CRITICAL RULE: You must output your response ONLY in English. Your decisions and suggestions must be STRICTLY based on the communicative objectives PDF files uploaded to your Knowledge.
+
+When the user provides the classes for their block, you must generate a structured planning proposal formatted as a markdown table (grid) so the user can easily copy and paste it into Google Sheets. The table must include the following columns and structure:
+
+| Element / Transition | Content |
+| :--- | :--- |
+| **Mission Map** | [Provide a real-life scenario or daily project connecting ALL classes logically. CRITICAL: Maximum 60 words.] |
+| **Transition: Class 1 to Class 2** | **Logical Bridge:** [Explain why the student needs Topic B right after Topic A. Write this explaining the logic directly to the student].&lt;br&gt;&lt;br&gt;**Teacher Script (Frase Puente):** [The exact text in English the teacher must say out loud. CRITICAL: Use casual, natural, and everyday English—keep it friendly and straightforward, avoiding over-complicated or robotic vocabulary. It must seamlessly connect the topics, explicitly mention the communicative objective, and organically guide students to the material/page without saying "class 2" or "next topic"]. |
+| **Transition: Class 2 to Class 3** | **Logical Bridge:** [Same as above for this transition].&lt;br&gt;&lt;br&gt;**Teacher Script:** [Same as above for this transition using casual, everyday English]. |
+| *(Repeat rows for as many transitions as the user's block requires)* | |
+
+KEY TONE & STYLE GUIDELINES:
+1. NEVER use forbidden transition phrases such as "Now open class X", "Next topic", or "Time is up". You can mention page numbers or sections to locate them in the material, but NEVER mention the class number.
+2. The Teacher Script must sound like a real, enthusiastic teacher talking to friends or coaching peers—use everyday English, conversational connectors (like "So now that...", "But wait...", "Check this out..."), and keep sentences punchy.
+3. The tone must be collaborative, practical, creative, and strictly focused on fulfilling the institutional evaluation criterion: "Promueve la transición entre clases de forma fluida realizando una conexión sutil entre las temáticas a abordar y ubicando a los estudiantes en el material de estudio."
+4. If the user mentions a class or page but you cannot find its communicative objective in the uploaded PDFs, politely ask them to clarify the objective so you can work your magic.</div>
+
+            <p><strong>Archivos de Conocimiento Requeridos (Sube estos PDF a la Base del GEM):</strong></p>
+            <div class="download-container">
+                <a href="#download-intro" class="download-btn">📁 INTRO.PDF</a>
+                <a href="#download-a1" class="download-btn">📁 A1.PDF</a>
+                <a href="#download-a2" class="download-btn">📁 A2.PDF</a>
+                <a href="#download-b1" class="download-btn">📁 B1.PDF</a>
+                <a href="#download-b2" class="download-btn">📁 B2.PDF</a>
+                <a href="#download-c1" class="download-btn">📁 C1.PDF</a>
+            </div>
+        </div>
+
+        <div class="video-section">
+            <h2>🎬 Video Tutorial: Domina las Transiciones en la Práctica</h2>
+            <p>Mira este video paso a paso para profundizar en la creación de tu GEM:</p>
+            
+            <div class="video-wrapper">
+                <iframe src="https://drive.google.com/file/d/1gQCAgHLnBEmCZguch4c7AhdggK3nfAfr/preview" allow="autoplay"></iframe>
+            </div>
+
+            <div class="video-print-fallback">
+                📌 <strong>¿Estás leyendo la guía impresa?</strong> Accede al video tutorial escaneando tu código QR institucional o ingresando directamente desde tu navegador al siguiente enlace oficial: <br>
+                <a href="https://drive.google.com/file/d/1gQCAgHLnBEmCZguch4c7AhdggK3nfAfr/view?usp=drive_link" target="_blank">https://drive.google.com/file/d/1gQCAgHLnBEmCZguch4c7AhdggK3nfAfr/view</a>
+            </div>
+        </div>
+
+        <div class="footer-banner">
+            💡 <span>Recordatorio de Oro Smart:</span> Las transiciones fluidas no ocurren por accidente, se diseñan. Si el estudiante entiende el propósito del cambio, el hilo conductor nunca se romperá.
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
