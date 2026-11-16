@@ -217,6 +217,30 @@
       transform-origin: 45px 73px;
     }
 
+    /* Animación de caminata del personaje TrocoYT (brazos y pasos alternos) */
+    @keyframes walkerStepLeft {
+      0%, 100% { transform: translateY(-4px); }
+      50% { transform: translateY(5px); }
+    }
+    @keyframes walkerStepRight {
+      0%, 100% { transform: translateY(5px); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes walkerSway {
+      0%, 100% { transform: rotate(-4deg) scale(1); }
+      50% { transform: rotate(4deg) scale(1.03); }
+    }
+    .walker-left-limb {
+      animation: walkerStepLeft 0.48s ease-in-out infinite;
+    }
+    .walker-right-limb {
+      animation: walkerStepRight 0.48s ease-in-out infinite;
+    }
+    .walker-body-sway {
+      animation: walkerSway 0.48s ease-in-out infinite;
+      transform-origin: 42px 44px;
+    }
+
     /* Cartel estilo cómic siempre anclado al lado de la moto */
     #moto-side-callout {
       position: absolute;
@@ -371,6 +395,11 @@
         <!-- Botón Añadir / Editar Comentario Cómic en la posición actual -->
         <button id="btn-open-poi-modal" title="Insertar o editar comentario cómic en el punto actual de la moto" class="comic-btn bg-sky-400 hover:bg-sky-300 text-[#18181B] px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
           <span>💬 + POI / Comentario</span>
+        </button>
+
+        <!-- Botón Alternar Modo Moto / Caminata TrocoYT desde el punto actual -->
+        <button id="btn-toggle-walk-mode" title="Cambiar entre Moto Duke 200 NG y Personaje Caminando (Casco TrocoYT) desde este punto" class="comic-btn bg-amber-300 hover:bg-amber-200 text-[#18181B] px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
+          <span id="walk-mode-btn-label">🚶 Tramo Caminata</span>
         </button>
 
         <!-- Selector Estilo Cartoon (Día / Atardecer / Satélite) -->
@@ -666,7 +695,13 @@
         <input id="poi-place-input" type="text" placeholder="Ej: Mirador La Peña / Peaje Pipiral" class="w-full bg-black/60 border-2 border-[#18181B] focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none mb-3" />
 
         <label class="block text-[11px] font-bold text-gray-300 mb-1">Frase en el bocadillo cómic:</label>
-        <input id="poi-bubble-input" type="text" placeholder="Ej: ☕ ¡Parada por tinto y fotos!" class="w-full bg-black/60 border-2 border-[#18181B] focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none mb-4" />
+        <input id="poi-bubble-input" type="text" placeholder="Ej: ☕ ¡Parada por tinto y fotos!" class="w-full bg-black/60 border-2 border-[#18181B] focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none mb-3" />
+
+        <label class="block text-[11px] font-bold text-gray-300 mb-1">Tipo de desplazamiento en este tramo:</label>
+        <select id="poi-mode-select" class="w-full bg-black/60 border-2 border-[#18181B] focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none mb-4">
+          <option value="moto">🏍️ En Moto (KTM Duke 200 NG)</option>
+          <option value="walk">🚶 Caminata (Personaje con Casco Negro TrocoYT)</option>
+        </select>
 
         <div class="flex justify-end gap-2">
           <button id="btn-cancel-poi-modal" class="comic-btn bg-gray-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">Cancelar</button>
@@ -778,6 +813,7 @@
       countdownTimer: null,
       lastCalloutMilestone: '',
       activeBubbleText: '',
+      currentAvatarMode: 'moto',
 
       // Grabación WebM
       mediaRecorder: null,
@@ -910,6 +946,7 @@
             distKm: cumulativeDist,
             name: p1.name || 'En ruta',
             road: p1.road || 'Carretera',
+            mode: p1.mode || null,
             bubble: step === 0 ? p1.bubble : null,
             waypointIdx: i
           });
@@ -926,6 +963,7 @@
         distKm: cumulativeDist,
         name: last.name || 'Destino Final',
         road: last.road || 'Llegada',
+        mode: last.mode || null,
         bubble: last.bubble || null,
         waypointIdx: waypoints.length - 1
       });
@@ -947,13 +985,20 @@
         }
       }
 
-      // Propagar nombres de sector y bocadillos recientes para que los tramos interpolados mantengan el contexto del último POI
+      // Propagar nombres de sector, modo (moto vs caminata) y bocadillos recientes
       let currentSectorName = dense[0]?.name || 'En ruta';
       let currentRoadName = dense[0]?.road || 'Carretera';
+      let currentTravelMode = dense[0]?.mode || 'moto';
       let activeBubbleUntilIdx = -1;
       let currentBubbleMsg = dense[0]?.bubble || '';
 
       for (let i = 0; i < dense.length; i++) {
+        if (dense[i].mode) {
+          currentTravelMode = dense[i].mode;
+        } else {
+          dense[i].mode = currentTravelMode;
+        }
+
         if (dense[i].name && dense[i].name !== 'En ruta' && !dense[i].name.startsWith('Registro ')) {
           currentSectorName = dense[i].name;
         } else {
@@ -1183,10 +1228,10 @@
 
     /**
      * ============================================================================
-     * MARCADOR CENITAL CARTOON KTM DUKE 200 NG (EXTRA GRANDE 124x124PX CON HALO)
+     * MARCADOR CENITAL CARTOON: KTM DUKE 200 NG vs PERSONAJE CAMINANDO (CASCO TROCOYT)
      * ============================================================================
      */
-    function createMotoDivIcon() {
+    function createMotoDivIcon(mode = 'moto') {
       const motoSvg = `
         <div id="moto-rotator" class="moto-marker-wrapper w-[124px] h-[124px] flex items-center justify-center">
           <svg width="124" height="124" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1256,8 +1301,59 @@
         </div>
       `;
 
+      const walkerSvg = `
+        <div id="moto-rotator" class="moto-marker-wrapper w-[124px] h-[124px] flex items-center justify-center">
+          <svg width="124" height="124" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Halo circular estilo sticker cómic -->
+            <circle cx="42" cy="44" r="35" fill="rgba(56, 189, 248, 0.22)" stroke="#18181B" stroke-width="2" stroke-dasharray="5,4"/>
+            <circle cx="42" cy="44" r="28" fill="rgba(255, 107, 0, 0.14)"/>
+
+            <!-- Sombra cenital del caminante -->
+            <ellipse cx="42" cy="47" rx="20" ry="15" fill="rgba(0,0,0,0.36)"/>
+
+            <g class="walker-body-sway">
+              <!-- Botas / Pies alternando pasos hacia adelante (arriba) -->
+              <g class="walker-left-limb">
+                <rect x="31" y="25" width="7.5" height="14" rx="3.7" fill="#18181B" stroke="#000000" stroke-width="1.8"/>
+                <rect x="32.5" y="25.5" width="4.5" height="3" rx="1" fill="#FF6B00"/>
+              </g>
+              <g class="walker-right-limb">
+                <rect x="45.5" y="25" width="7.5" height="14" rx="3.7" fill="#18181B" stroke="#000000" stroke-width="1.8"/>
+                <rect x="47" y="25.5" width="4.5" height="3" rx="1" fill="#FF6B00"/>
+              </g>
+
+              <!-- Brazos balanceándose al caminar -->
+              <g class="walker-right-limb">
+                <rect x="18" y="34" width="8" height="16" rx="4" fill="#27272A" stroke="#18181B" stroke-width="2.4"/>
+                <circle cx="22" cy="34.5" r="3.4" fill="#FF6B00" stroke="#18181B" stroke-width="1.8"/>
+              </g>
+              <g class="walker-left-limb">
+                <rect x="58" y="34" width="8" height="16" rx="4" fill="#27272A" stroke="#18181B" stroke-width="2.4"/>
+                <circle cx="62" cy="34.5" r="3.4" fill="#FF6B00" stroke="#18181B" stroke-width="1.8"/>
+              </g>
+
+              <!-- Chaqueta motera y morral visto desde arriba -->
+              <rect x="23" y="35" width="38" height="18" rx="9" fill="#1F2937" stroke="#18181B" stroke-width="2.8"/>
+              <!-- Franjas naranjas en hombros -->
+              <path d="M25 40 L31 40 M53 40 L59 40" stroke="#FF6B00" stroke-width="3" stroke-linecap="round"/>
+              <!-- Mochila trasera -->
+              <rect x="31" y="48.5" width="22" height="8" rx="4" fill="#374151" stroke="#18181B" stroke-width="2.2"/>
+
+              <!-- CASCO NEGRO CON TEXTO "TrocoYT" EN NARANJA -->
+              <circle cx="42" cy="43" r="14.2" fill="#111113" stroke="#000000" stroke-width="2.8"/>
+              <!-- Brillo superior del casco negro -->
+              <path d="M33 34 C38 30.5, 46 30.5, 51 34" stroke="#3F3F46" stroke-width="2" stroke-linecap="round"/>
+              <!-- Visor frontal del casco -->
+              <path d="M33.5 32.5 C38 29.5, 46 29.5, 50.5 32.5 C48.5 34.8, 35.5 34.8, 33.5 32.5 Z" fill="#FF6B00" stroke="#18181B" stroke-width="1.2"/>
+              <!-- Texto legible "TrocoYT" en naranja brillante sobre la calota negra -->
+              <text x="42" y="46.5" text-anchor="middle" fill="#FF6B00" font-family="Fredoka, Inter, sans-serif" font-weight="900" font-size="6.4" letter-spacing="0.15">TrocoYT</text>
+            </g>
+          </svg>
+        </div>
+      `;
+
       return L.divIcon({
-        html: motoSvg,
+        html: mode === 'walk' ? walkerSvg : motoSvg,
         className: 'custom-moto-div-icon',
         iconSize: [124, 124],
         iconAnchor: [62, 62]
@@ -1441,8 +1537,9 @@
       });
 
       const startPt = state.densePoints[0];
+      state.currentAvatarMode = startPt.mode || 'moto';
       state.motoMarker = L.marker([startPt.lat, startPt.lng], {
-        icon: createMotoDivIcon(),
+        icon: createMotoDivIcon(state.currentAvatarMode),
         zIndexOffset: 1000
       }).addTo(state.map);
 
@@ -1532,19 +1629,29 @@
       const distKm = p1.distKm + (p2.distKm - p1.distKm) * subT;
       const bearing = p1.bearing;
       const lean = p1.lean || 0;
+      const pointMode = p1.mode || 'moto';
 
-      // Posicionar y rotar moto cartoon con inclinación en curvas
+      // Cambiar dinámicamente el avatar entre Moto Duke 200 NG y Personaje Caminando (Casco TrocoYT)
+      if (pointMode !== state.currentAvatarMode) {
+        state.currentAvatarMode = pointMode;
+        state.motoMarker.setIcon(createMotoDivIcon(pointMode));
+      }
+
+      // Posicionar y rotar avatar (solo inclinar si va en moto)
       state.motoMarker.setLatLng([lat, lng]);
       const rotator = document.getElementById('moto-rotator');
       if (rotator) {
-        rotator.style.transform = `rotate(${bearing.toFixed(1)}deg) skewX(${(lean * 0.35).toFixed(1)}deg)`;
+        const leanDeg = pointMode === 'walk' ? 0 : (lean * 0.35);
+        rotator.style.transform = `rotate(${bearing.toFixed(1)}deg) skewX(${leanDeg.toFixed(1)}deg)`;
       }
 
       // Actualizar texto y pulso del cartel lateral permanente
       if (p1.bubble) {
         state.activeBubbleText = p1.bubble;
       } else if (p1.name !== state.lastCalloutMilestone) {
-        state.activeBubbleText = `🛣️ ${p1.road}`;
+        state.activeBubbleText = pointMode === 'walk'
+          ? `🚶 TrocoYT caminando · ${p1.road}`
+          : `🛣️ ${p1.road}`;
       }
 
       if (p1.name !== state.lastCalloutMilestone) {
@@ -1553,10 +1660,18 @@
       }
 
       const pct = Math.round(state.progress * 100);
-      document.getElementById('callout-badge').textContent = pct >= 100 ? 'META' : `${pct}% RUTA`;
+      const badgeEl = document.getElementById('callout-badge');
+      badgeEl.textContent = pct >= 100 ? 'META' : pointMode === 'walk' ? '🚶 A PIE' : `${pct}% RUTA`;
+      badgeEl.style.backgroundColor = pointMode === 'walk' ? '#0284C7' : '#FF6B00';
       document.getElementById('callout-telemetry').textContent = `${distKm.toFixed(1)}km · ${alt.toLocaleString('es-CO')}m`;
       document.getElementById('callout-title').textContent = p1.name;
       document.getElementById('callout-subtext').textContent = state.activeBubbleText;
+
+      // Actualizar botón indicador de modo actual en la barra superior
+      const walkBtnLabel = document.getElementById('walk-mode-btn-label');
+      if (walkBtnLabel) {
+        walkBtnLabel.textContent = pointMode === 'walk' ? '🏍️ Volver a Moto' : '🚶 Tramo Caminata';
+      }
 
       // Dibujar triple trazo cómic recorrido
       const trailCoords = pts.slice(0, idx + 1).map(p => [p.lat, p.lng]);
@@ -1725,12 +1840,12 @@
 
     function formatActivityLabel(typeRaw) {
       const t = (typeRaw || '').toUpperCase();
-      if (t.includes('MOTORCYCL')) return { icon: '🏍️', label: 'En Moto' };
-      if (t.includes('PASSENGER_VEHICLE') || t.includes('DRIVING')) return { icon: '🏍️', label: 'Tramo en Ruta' };
-      if (t.includes('CYCLING') || t.includes('BICYCL')) return { icon: '🚲', label: 'Ciclismo' };
-      if (t.includes('WALKING') || t.includes('RUNNING')) return { icon: '🥾', label: 'Caminata' };
-      if (t.includes('BUS') || t.includes('TRAIN') || t.includes('SUBWAY')) return { icon: '🚌', label: 'Transporte' };
-      return { icon: '🛣️', label: 'Desplazamiento' };
+      if (t.includes('MOTORCYCL')) return { icon: '🏍️', label: 'En Moto', mode: 'moto' };
+      if (t.includes('PASSENGER_VEHICLE') || t.includes('DRIVING')) return { icon: '🏍️', label: 'Tramo en Ruta', mode: 'moto' };
+      if (t.includes('CYCLING') || t.includes('BICYCL')) return { icon: '🚲', label: 'Ciclismo', mode: 'moto' };
+      if (t.includes('WALKING') || t.includes('RUNNING') || t.includes('HIKING') || t.includes('ON_FOOT')) return { icon: '🚶', label: 'Caminata TrocoYT', mode: 'walk' };
+      if (t.includes('BUS') || t.includes('TRAIN') || t.includes('SUBWAY')) return { icon: '🚌', label: 'Transporte', mode: 'moto' };
+      return { icon: '🛣️', label: 'Desplazamiento', mode: 'moto' };
     }
 
     function formatSemanticVisitType(semType) {
@@ -1848,12 +1963,15 @@
                       lat: sCoord.lat,
                       lng: sCoord.lng,
                       alt: 1600,
+                      mode: actInfo.mode,
                       name: lmStart || `${actInfo.label}`,
                       road: distKmSeg ? `${actInfo.label} · ${distKmSeg} km` : actInfo.label,
                       checkpoint: true,
-                      bubble: distKmSeg
-                        ? `${actInfo.icon} ${actInfo.label} · Tramo de ${distKmSeg} km`
-                        : `${actInfo.icon} Inicio tramo ${actInfo.label}`
+                      bubble: actInfo.mode === 'walk'
+                        ? `🚶 TrocoYT a pie${distKmSeg ? ` (${distKmSeg} km)` : ''}`
+                        : distKmSeg
+                          ? `${actInfo.icon} ${actInfo.label} · Tramo de ${distKmSeg} km`
+                          : `${actInfo.icon} Inicio tramo ${actInfo.label}`
                     });
                   }
                   if (eCoord) {
@@ -1863,6 +1981,7 @@
                       lat: eCoord.lat,
                       lng: eCoord.lng,
                       alt: 1600,
+                      mode: actInfo.mode,
                       name: lmEnd || 'Fin de tramo',
                       road: actInfo.label,
                       checkpoint: Boolean(lmEnd),
@@ -1925,10 +2044,13 @@
                         bucket.push({
                           ts: startMs + idx,
                           lat, lng, alt: 1600,
+                          mode: actInfo.mode,
                           name: lm || 'En ruta',
                           road: distKmSeg ? `${actInfo.label} · ${distKmSeg} km` : actInfo.label,
                           checkpoint: idx === 0,
-                          bubble: idx === 0 && distKmSeg ? `${actInfo.icon} ${actInfo.label} (${distKmSeg} km)` : null
+                          bubble: idx === 0
+                            ? (actInfo.mode === 'walk' ? `🚶 TrocoYT caminando${distKmSeg ? ` (${distKmSeg} km)` : ''}` : (distKmSeg ? `${actInfo.icon} ${actInfo.label} (${distKmSeg} km)` : null))
+                            : null
                         });
                       }
                     });
@@ -1942,14 +2064,18 @@
                     bucket.push({
                       ts: startMs,
                       lat: sLat, lng: sLng, alt: 1600,
+                      mode: actInfo.mode,
                       name: lmS || actInfo.label,
                       road: actInfo.label,
                       checkpoint: true,
-                      bubble: `${actInfo.icon} ${actInfo.label}${distKmSeg ? ` · ${distKmSeg} km` : ''}`
+                      bubble: actInfo.mode === 'walk'
+                        ? `🚶 TrocoYT a pie${distKmSeg ? ` · ${distKmSeg} km` : ''}`
+                        : `${actInfo.icon} ${actInfo.label}${distKmSeg ? ` · ${distKmSeg} km` : ''}`
                     });
                     bucket.push({
                       ts: endMs,
                       lat: eLat, lng: eLng, alt: 1600,
+                      mode: actInfo.mode,
                       name: lmE || 'Fin de tramo',
                       road: actInfo.label,
                       checkpoint: Boolean(lmE)
@@ -2398,6 +2524,7 @@
         document.getElementById('poi-modal-pct-badge').textContent = `${pct}% · ${currentPt.distKm.toFixed(1)} km`;
         document.getElementById('poi-place-input').value = currentPt.name || '';
         document.getElementById('poi-bubble-input').value = currentPt.bubble || `📍 ¡Paso por ${currentPt.name}!`;
+        document.getElementById('poi-mode-select').value = currentPt.mode || 'moto';
         poiModal.classList.remove('hidden');
       });
 
@@ -2411,7 +2538,9 @@
         const idx = Math.min(pts.length - 1, Math.floor(state.progress * (pts.length - 1)));
         const currentPt = pts[idx];
         const newPlace = document.getElementById('poi-place-input').value.trim() || currentPt.name;
-        const newBubble = document.getElementById('poi-bubble-input').value.trim() || `📍 ${newPlace}`;
+        const newMode = document.getElementById('poi-mode-select').value || 'moto';
+        const defaultBubble = newMode === 'walk' ? `🚶 TrocoYT caminando en ${newPlace}` : `📍 ${newPlace}`;
+        const newBubble = document.getElementById('poi-bubble-input').value.trim() || defaultBubble;
 
         // Insertar checkpoint directamente en la ruta actual
         const wpIdx = Math.min(state.currentRoute.waypoints.length - 1, currentPt.waypointIdx || 0);
@@ -2420,7 +2549,8 @@
           lng: currentPt.lng,
           alt: currentPt.alt,
           name: newPlace,
-          road: currentPt.road,
+          road: newMode === 'walk' ? 'Tramo a Pie · TrocoYT' : currentPt.road,
+          mode: newMode,
           checkpoint: true,
           bubble: newBubble
         });
@@ -2432,7 +2562,40 @@
         updateSimulationFrame(false);
         triggerComicBubble(newBubble);
         poiModal.classList.add('hidden');
-        showToast(`¡Comentario cómic añadido en ${newPlace}!`, 'success');
+        showToast(newMode === 'walk' ? `¡Tramo caminando TrocoYT activado en ${newPlace}!` : `¡Comentario cómic añadido en ${newPlace}!`, 'success');
+      });
+
+      // Botón rápido en barra superior para alternar entre Moto y Caminata TrocoYT en el punto actual
+      document.getElementById('btn-toggle-walk-mode').addEventListener('click', () => {
+        const pts = state.densePoints;
+        if (!pts.length) return;
+        const idx = Math.min(pts.length - 1, Math.floor(state.progress * (pts.length - 1)));
+        const currentPt = pts[idx];
+        const nextMode = (currentPt.mode || 'moto') === 'walk' ? 'moto' : 'walk';
+        const wpIdx = Math.min(state.currentRoute.waypoints.length - 1, currentPt.waypointIdx || 0);
+
+        const bubbleMsg = nextMode === 'walk'
+          ? `🚶 TrocoYT a pie por ${currentPt.name}`
+          : `🏍️ De vuelta en la Duke 200 NG`;
+
+        state.currentRoute.waypoints.splice(wpIdx + 1, 0, {
+          lat: currentPt.lat,
+          lng: currentPt.lng,
+          alt: currentPt.alt,
+          name: currentPt.name,
+          road: nextMode === 'walk' ? 'Caminata · TrocoYT' : 'En Moto · Duke 200 NG',
+          mode: nextMode,
+          checkpoint: true,
+          bubble: bubbleMsg
+        });
+
+        const savedProgress = state.progress;
+        loadRoute(state.currentRoute);
+        state.progress = savedProgress;
+        state.lastCalloutMilestone = '';
+        updateSimulationFrame(false);
+        triggerComicBubble(bubbleMsg);
+        showToast(nextMode === 'walk' ? '🚶 Personaje TrocoYT caminando activado' : '🏍️ Moto Duke 200 NG activada', 'success');
       });
 
       // Modal Mis Rutas & Timeline.json
