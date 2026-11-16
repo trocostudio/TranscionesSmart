@@ -306,8 +306,14 @@
     </div>
 
     <!-- Banner de Modo Planificador Activo -->
-    <div id="planner-banner" class="hidden editor-ui absolute top-16 left-1/2 -translate-x-1/2 z-[1400] bg-[#FACC15] text-[#18181B] border-2 border-[#18181B] shadow-[4px_4px_0px_#18181B] rounded-2xl px-4 py-2 flex items-center gap-3">
-      <span class="text-sm font-comic font-bold">🛣️ MODO PLANIFICADOR: Haz clic en el mapa para marcar Origen, Paradas y Destino</span>
+    <div id="planner-banner" class="hidden editor-ui absolute top-16 left-1/2 -translate-x-1/2 z-[1400] bg-[#FACC15] text-[#18181B] border-2 border-[#18181B] shadow-[4px_4px_0px_#18181B] rounded-2xl px-3.5 py-2 flex flex-wrap items-center justify-center gap-2 max-w-[95%]">
+      <span class="text-xs sm:text-sm font-comic font-bold">🛣️ PLANIFICADOR:</span>
+      <!-- Buscador de municipios/lugares para añadir puntos por nombre -->
+      <div class="flex items-center bg-white border-2 border-[#18181B] rounded-xl overflow-hidden">
+        <input id="planner-search-input" type="text" placeholder="Buscar lugar (ej: Quetame, Melgar)..." class="px-2.5 py-1 text-xs font-bold text-[#18181B] outline-none w-44 sm:w-56" />
+        <button id="btn-planner-search-add" class="bg-[#18181B] text-[#FACC15] px-2.5 py-1 text-xs font-extrabold hover:bg-gray-800">+ Añadir</button>
+      </div>
+      <span class="text-[11px] font-bold hidden md:inline">o haz clic en el mapa</span>
       <button id="btn-planner-undo" class="bg-white hover:bg-gray-100 text-[#18181B] border-2 border-[#18181B] px-2.5 py-1 rounded-lg text-xs font-extrabold">Deshacer</button>
       <button id="btn-planner-clear" class="bg-red-500 hover:bg-red-600 text-white border-2 border-[#18181B] px-2.5 py-1 rounded-lg text-xs font-extrabold">Limpiar</button>
       <button id="btn-planner-save-open" class="bg-[#FF6B00] hover:bg-[#ff7f24] text-white border-2 border-[#18181B] px-3 py-1 rounded-lg text-xs font-extrabold">Guardar Ruta</button>
@@ -360,6 +366,11 @@
         <!-- Botón Planificador de Rutas Futuras -->
         <button id="btn-toggle-planner" class="comic-btn bg-emerald-400 hover:bg-emerald-300 text-[#18181B] px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
           <span>🛣️ Planificar Ruta</span>
+        </button>
+
+        <!-- Botón Añadir / Editar Comentario Cómic en la posición actual -->
+        <button id="btn-open-poi-modal" title="Insertar o editar comentario cómic en el punto actual de la moto" class="comic-btn bg-sky-400 hover:bg-sky-300 text-[#18181B] px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
+          <span>💬 + POI / Comentario</span>
         </button>
 
         <!-- Selector Estilo Cartoon (Día / Atardecer / Satélite) -->
@@ -594,14 +605,17 @@
             
             <!-- Guía rápida 3 pasos -->
             <div class="mt-3 pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2 text-left text-[11px]">
-              <div class="bg-white/5 p-2 rounded-xl">
-                <span class="text-[#FACC15] font-black">1. En tu celular:</span> Abre Google Maps ➔ Tu foto ➔ <b>Tu cronología</b>.
+              <div class="bg-white/5 p-2.5 rounded-xl border border-white/10">
+                <span class="text-[#FACC15] font-black block mb-0.5">📱 En Android:</span>
+                Ve a <b>Ajustes del teléfono</b> (no dentro de Maps) ➔ <b>Ubicación</b> ➔ <b>Cronología</b> ➔ <b>Exportar datos de la cronología</b>.
               </div>
-              <div class="bg-white/5 p-2 rounded-xl">
-                <span class="text-[#FACC15] font-black">2. Exportar:</span> Toca los tres puntos (⋮) o ⚙️ ➔ <b>Exportar datos de cronología</b>.
+              <div class="bg-white/5 p-2.5 rounded-xl border border-white/10">
+                <span class="text-[#FF6B00] font-black block mb-0.5">🍏 En iPhone (iOS):</span>
+                Abre <b>Google Maps</b> ➔ Tu foto ➔ <b>Tu cronología</b> ➔ Menú <b>(•••)</b> arriba ➔ <b>Ajustes de ubicación y privacidad</b> ➔ <b>Exportar datos</b>.
               </div>
-              <div class="bg-white/5 p-2 rounded-xl">
-                <span class="text-[#FACC15] font-black">3. Animar:</span> Sube el archivo <code>Timeline.json</code> aquí y elige el día del viaje.
+              <div class="bg-white/5 p-2.5 rounded-xl border border-white/10">
+                <span class="text-emerald-400 font-black block mb-0.5">🛣️ Alternativa en 10 seg:</span>
+                Si no quieres exportar nada, usa <b>🛣️ Planificar Ruta</b> arriba, escribe tus paradas y la app traza la carretera real sola.
               </div>
             </div>
           </div>
@@ -633,6 +647,30 @@
         <div class="flex justify-end gap-2">
           <button id="btn-cancel-save-planner" class="comic-btn bg-gray-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">Cancelar</button>
           <button id="btn-confirm-save-planner" class="comic-btn bg-[#FF6B00] text-[#18181B] px-4 py-1.5 rounded-xl text-xs font-black">Guardar y Animar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         7. MODAL AÑADIR / EDITAR COMENTARIO CÓMIC (POI PERSONALIZADO)
+         ========================================================================= -->
+    <div id="poi-editor-modal" class="hidden absolute inset-0 z-[3200] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-[#12151C] border-[3px] border-[#18181B] shadow-[6px_6px_0px_#38BDF8] rounded-2xl w-full max-w-md p-5">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-comic text-lg font-bold text-sky-400">💬 Comentario Cómic / Punto de Interés</h3>
+          <span id="poi-modal-pct-badge" class="text-[11px] font-mono font-black bg-[#FACC15] text-[#18181B] px-2 py-0.5 rounded border border-[#18181B]">0%</span>
+        </div>
+        <p class="text-xs text-gray-300 mb-3">Mueve la barra de tiempo al punto exacto donde quieres que salga el cartel junto a la moto y escribe el lugar y comentario.</p>
+
+        <label class="block text-[11px] font-bold text-gray-300 mb-1">Nombre del lugar / sector:</label>
+        <input id="poi-place-input" type="text" placeholder="Ej: Mirador La Peña / Peaje Pipiral" class="w-full bg-black/60 border-2 border-[#18181B] focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none mb-3" />
+
+        <label class="block text-[11px] font-bold text-gray-300 mb-1">Frase en el bocadillo cómic:</label>
+        <input id="poi-bubble-input" type="text" placeholder="Ej: ☕ ¡Parada por tinto y fotos!" class="w-full bg-black/60 border-2 border-[#18181B] focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white font-bold outline-none mb-4" />
+
+        <div class="flex justify-end gap-2">
+          <button id="btn-cancel-poi-modal" class="comic-btn bg-gray-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button id="btn-save-poi-modal" class="comic-btn bg-sky-400 text-[#18181B] px-4 py-1.5 rounded-xl text-xs font-black">Guardar en este punto</button>
         </div>
       </div>
     </div>
@@ -772,6 +810,38 @@
     function toRad(deg) { return deg * Math.PI / 180; }
     function toDeg(rad) { return rad * 180 / Math.PI; }
 
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      const bgClass = type === 'success'
+        ? 'bg-emerald-400 text-[#18181B]'
+        : type === 'error'
+          ? 'bg-rose-500 text-white'
+          : 'bg-[#FACC15] text-[#18181B]';
+      toast.className = `${bgClass} border-2 border-[#18181B] shadow-[4px_4px_0px_#18181B] px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all duration-300`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-6px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    function triggerComicBubble(text) {
+      const subtextEl = document.getElementById('callout-subtext');
+      const cardEl = document.getElementById('moto-callout-card');
+      if (subtextEl && text) {
+        subtextEl.textContent = text;
+      }
+      if (cardEl) {
+        cardEl.classList.remove('callout-pop-anim');
+        void cardEl.offsetWidth;
+        cardEl.classList.add('callout-pop-anim');
+      }
+    }
+
     function haversineKm(lat1, lon1, lat2, lon2) {
       const R = 6371;
       const dLat = toRad(lat2 - lat1);
@@ -877,38 +947,161 @@
         }
       }
 
+      // Propagar nombres de sector y bocadillos recientes para que los tramos interpolados mantengan el contexto del último POI
+      let currentSectorName = dense[0]?.name || 'En ruta';
+      let currentRoadName = dense[0]?.road || 'Carretera';
+      let activeBubbleUntilIdx = -1;
+      let currentBubbleMsg = dense[0]?.bubble || '';
+
+      for (let i = 0; i < dense.length; i++) {
+        if (dense[i].name && dense[i].name !== 'En ruta' && !dense[i].name.startsWith('Registro ')) {
+          currentSectorName = dense[i].name;
+        } else {
+          dense[i].name = currentSectorName;
+        }
+
+        if (dense[i].road && dense[i].road !== 'Google Maps Timeline') {
+          currentRoadName = dense[i].road;
+        } else {
+          dense[i].road = currentRoadName;
+        }
+
+        if (dense[i].bubble) {
+          currentBubbleMsg = dense[i].bubble;
+          // Mantener el bocadillo visible durante ~4.5% de la ruta o mínimo 12 pasos densos
+          activeBubbleUntilIdx = Math.min(dense.length - 1, i + Math.max(12, Math.floor(dense.length * 0.045)));
+        } else if (i <= activeBubbleUntilIdx) {
+          dense[i].bubble = currentBubbleMsg;
+        }
+      }
+
       return dense;
     }
 
     /**
      * ============================================================================
-     * NOTIFICACIONES TOAST Y BOCADILLOS DE CÓMIC
+     * GEOCODIFICACIÓN INVERSA Y DICCIONARIO DE REFERENCIA (COLOMBIA / VENEZUELA)
      * ============================================================================
      */
-    function showToast(message, type = 'info') {
-      if (state.obsCleanMode) return;
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      const bg = type === 'success' ? 'bg-emerald-400 text-[#18181B]' : type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#FACC15] text-[#18181B]';
-      toast.className = `${bg} border-2 border-[#18181B] shadow-[4px_4px_0px_#18181B] px-4 py-2 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition-all duration-300 opacity-0 translate-y-[-8px]`;
-      toast.innerHTML = `<span>⚡</span><span>${message}</span>`;
-      container.appendChild(toast);
+    const KNOWN_LANDMARKS_CO_VE = [
+      { lat: 3.5463, lng: -73.7069, name: 'Granada, Meta', radiusKm: 5 },
+      { lat: 3.6961, lng: -73.6996, name: 'San Martín, Meta', radiusKm: 5 },
+      { lat: 3.8808, lng: -73.7656, name: 'Guamal, Meta', radiusKm: 4.5 },
+      { lat: 3.9885, lng: -73.7595, name: 'Acacías, Meta', radiusKm: 5 },
+      { lat: 4.1420, lng: -73.6266, name: 'Villavicencio, Meta', radiusKm: 7 },
+      { lat: 4.1865, lng: -73.7240, name: 'Peaje Pipiral', radiusKm: 2.5 },
+      { lat: 4.2279, lng: -73.8162, name: 'Guayabetal, Cundinamarca', radiusKm: 3.5 },
+      { lat: 4.3292, lng: -73.8617, name: 'Puente Quetame, Cundinamarca', radiusKm: 3.2 },
+      { lat: 4.4120, lng: -73.9890, name: 'Cáqueza, Cundinamarca', radiusKm: 4 },
+      { lat: 4.4426, lng: -74.0445, name: 'Chipaque, Cundinamarca', radiusKm: 4 },
+      { lat: 4.4765, lng: -74.0890, name: 'Alto de Boquerón (3,115m)', radiusKm: 2.5 },
+      { lat: 4.5049, lng: -74.1165, name: 'Portal Usme · Bogotá', radiusKm: 4 },
+      { lat: 4.5794, lng: -74.2144, name: 'Soacha, Cundinamarca', radiusKm: 5.5 },
+      { lat: 4.6097, lng: -74.0817, name: 'Bogotá D.C.', radiusKm: 12 },
+      { lat: 4.8616, lng: -74.0325, name: 'Chía, Cundinamarca', radiusKm: 4.5 },
+      { lat: 4.9220, lng: -74.0210, name: 'Cajicá, Cundinamarca', radiusKm: 4 },
+      { lat: 5.0220, lng: -74.0040, name: 'Zipaquirá, Cundinamarca', radiusKm: 5 },
+      { lat: 4.3372, lng: -74.3638, name: 'Fusagasugá, Cundinamarca', radiusKm: 5.5 },
+      { lat: 4.2031, lng: -74.6361, name: 'Melgar, Tolima', radiusKm: 5 },
+      { lat: 4.3009, lng: -74.8007, name: 'Girardot, Cundinamarca', radiusKm: 5.5 },
+      { lat: 4.4389, lng: -75.2322, name: 'Ibagué, Tolima', radiusKm: 7 },
+      { lat: 5.6346, lng: -73.5262, name: 'Villa de Leyva, Boyacá', radiusKm: 5 },
+      { lat: 5.5353, lng: -73.3678, name: 'Tunja, Boyacá', radiusKm: 6 },
+      { lat: 6.2442, lng: -75.5812, name: 'Medellín, Antioquia', radiusKm: 10 },
+      { lat: 3.4516, lng: -76.5320, name: 'Cali, Valle del Cauca', radiusKm: 10 },
+      { lat: 7.8939, lng: -72.5078, name: 'Cúcuta, Norte de Santander', radiusKm: 7 },
+      { lat: 7.7669, lng: -72.2250, name: 'San Cristóbal, Táchira', radiusKm: 7 },
+      { lat: 8.5897, lng: -71.1561, name: 'Mérida, Venezuela', radiusKm: 7 },
+      { lat: 10.4806, lng: -66.9036, name: 'Caracas, Venezuela', radiusKm: 10 }
+    ];
 
-      requestAnimationFrame(() => toast.classList.remove('opacity-0', 'translate-y-[-8px]'));
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-[-8px]');
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+    const geocodeCache = {};
+
+    function findLocalLandmarkName(lat, lng) {
+      let best = null;
+      let bestDist = Infinity;
+      for (const lm of KNOWN_LANDMARKS_CO_VE) {
+        const d = haversineKm(lat, lng, lm.lat, lm.lng);
+        if (d <= lm.radiusKm && d < bestDist) {
+          bestDist = d;
+          best = lm.name;
+        }
+      }
+      return best;
     }
 
-    function triggerComicBubble(text) {
-      if (!text) return;
-      state.activeBubbleText = text;
-      const card = document.getElementById('moto-callout-card');
-      if (card) {
-        card.classList.remove('callout-pop-anim');
-        void card.offsetWidth;
-        card.classList.add('callout-pop-anim');
+    async function reverseGeocodeSmart(lat, lng) {
+      const cacheKey = `${lat.toFixed(3)},${lng.toFixed(3)}`;
+      if (geocodeCache[cacheKey]) return geocodeCache[cacheKey];
+
+      const localHit = findLocalLandmarkName(lat, lng);
+      if (localHit) {
+        geocodeCache[cacheKey] = localHit;
+        return localHit;
+      }
+
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          const addr = data.address || {};
+          const placeName = data.name || addr.suburb || addr.neighbourhood || addr.town || addr.village || addr.city || addr.county;
+          const region = addr.city || addr.town || addr.state;
+          const label = placeName && region && placeName !== region
+            ? `${placeName}, ${region}`
+            : (placeName || region || `Sector ${lat.toFixed(2)}, ${lng.toFixed(2)}`);
+          geocodeCache[cacheKey] = label;
+          return label;
+        }
+      } catch (e) {
+        // Fallback silencioso
+      }
+      return null;
+    }
+
+    async function enrichTimelineRouteNames(routeObj) {
+      if (!routeObj || !Array.isArray(routeObj.waypoints)) return;
+      const checkpoints = routeObj.waypoints.filter(w => w.checkpoint);
+      // Limitar a máximo 8 consultas para respetar límites gratuitos de Nominatim
+      const toResolve = checkpoints.slice(0, 8);
+      let updatedCount = 0;
+
+      for (let i = 0; i < toResolve.length; i++) {
+        const cp = toResolve[i];
+        const resolved = await reverseGeocodeSmart(cp.lat, cp.lng);
+        if (resolved) {
+          cp.name = resolved;
+          if (i === 0) {
+            cp.bubble = `🏍️ ¡Salida desde ${resolved}!`;
+          } else if (i === toResolve.length - 1) {
+            cp.bubble = `🏁 ¡Llegada a ${resolved}!`;
+          } else if (cp.isVisit) {
+            const minsText = cp.durationMin ? ` (${cp.durationMin} min)` : '';
+            cp.bubble = `🛑 Parada en ${resolved}${minsText}`;
+          } else {
+            cp.bubble = `📍 Paso por ${resolved}`;
+          }
+          updatedCount++;
+        }
+        // Pausa respetuosa de 350ms solo si no estaba en caché local
+        await new Promise(r => setTimeout(r, 350));
+      }
+
+      if (updatedCount > 0) {
+        const startName = toResolve[0]?.name || 'Inicio';
+        const endName = toResolve[toResolve.length - 1]?.name || 'Destino';
+        if (routeObj.dateKey) {
+          routeObj.title = `${routeObj.dateKey}: ${startName} → ${endName}`;
+        }
+        // Si esta ruta sigue activa en pantalla, refrescar etiquetas y densificación sin perder progreso
+        if (state.currentRoute && state.currentRoute.id === routeObj.id) {
+          const savedProgress = state.progress;
+          loadRoute(routeObj);
+          state.progress = savedProgress;
+          updateSimulationFrame(false);
+          renderRoutesModalLists();
+        }
       }
     }
 
@@ -1521,6 +1714,34 @@
      * PARSER DE GOOGLE MAPS TIMELINE.JSON Y ARCHIVOS GPX
      * ============================================================================
      */
+    function parseLatLngString(raw) {
+      if (!raw || typeof raw !== 'string') return null;
+      const clean = raw.replace(/°/g, '').split(',');
+      const lat = parseFloat(clean[0]);
+      const lng = parseFloat(clean[1]);
+      if (isNaN(lat) || isNaN(lng)) return null;
+      return { lat, lng };
+    }
+
+    function formatActivityLabel(typeRaw) {
+      const t = (typeRaw || '').toUpperCase();
+      if (t.includes('MOTORCYCL')) return { icon: '🏍️', label: 'En Moto' };
+      if (t.includes('PASSENGER_VEHICLE') || t.includes('DRIVING')) return { icon: '🏍️', label: 'Tramo en Ruta' };
+      if (t.includes('CYCLING') || t.includes('BICYCL')) return { icon: '🚲', label: 'Ciclismo' };
+      if (t.includes('WALKING') || t.includes('RUNNING')) return { icon: '🥾', label: 'Caminata' };
+      if (t.includes('BUS') || t.includes('TRAIN') || t.includes('SUBWAY')) return { icon: '🚌', label: 'Transporte' };
+      return { icon: '🛣️', label: 'Desplazamiento' };
+    }
+
+    function formatSemanticVisitType(semType) {
+      const s = (semType || '').toUpperCase();
+      if (s.includes('HOME')) return 'Casa';
+      if (s.includes('WORK')) return 'Trabajo';
+      if (s.includes('RESTAURANT') || s.includes('FOOD') || s.includes('CAFE')) return 'Parada Gastronómica';
+      if (s.includes('GAS') || s.includes('FUEL')) return 'Estación de Servicio';
+      return 'Punto de Interés';
+    }
+
     function parseTimelineOrGpxFile(file) {
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -1539,130 +1760,273 @@
               const lng = parseFloat(pt.getAttribute('lon'));
               const ele = pt.querySelector('ele');
               const alt = ele ? Math.round(parseFloat(ele.textContent)) : 1500;
+              const nameTag = pt.querySelector('name');
+              const customName = nameTag ? nameTag.textContent.trim() : null;
               if (!isNaN(lat) && !isNaN(lng)) {
+                const isFirst = i === 0;
+                const isLast = i === trkpts.length - 1;
+                const localName = customName || findLocalLandmarkName(lat, lng);
                 pts.push({
                   lat, lng, alt,
-                  name: i === 0 ? 'Salida GPX' : i === trkpts.length - 1 ? 'Llegada GPX' : `Tramo #${i + 1}`,
+                  name: localName || (isFirst ? 'Salida GPX' : isLast ? 'Llegada GPX' : 'En ruta'),
                   road: file.name,
-                  checkpoint: i === 0 || i === trkpts.length - 1
+                  checkpoint: isFirst || isLast || Boolean(customName),
+                  bubble: isFirst
+                    ? `🏍️ ¡Salida ${localName || 'GPX'}!`
+                    : isLast
+                      ? `🏁 ¡Llegada a ${localName || 'Destino'}!`
+                      : customName
+                        ? `📍 ${customName}`
+                        : null
                 });
               }
             });
             if (pts.length >= 2) {
-              detectedRoutes.push({
+              const routeObj = {
                 id: 'gpx-' + Date.now(),
                 title: `Archivo GPX: ${file.name}`,
                 badge: `GPX · ${pts.length} PTS`,
                 subtitle: 'Ruta importada desde archivo GPX',
                 waypoints: pts
-              });
+              };
+              detectedRoutes.push(routeObj);
             }
           } else {
             const data = JSON.parse(content);
-            const routesByDate = {};
+            const eventsByDate = {};
 
-            // Formato moderno Google Maps Timeline (semanticSegments)
+            const ensureDateBucket = (dateKey) => {
+              if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
+              return eventsByDate[dateKey];
+            };
+
+            // 1. Formato moderno Google Maps Timeline (semanticSegments)
             if (Array.isArray(data.semanticSegments)) {
               data.semanticSegments.forEach(seg => {
-                const dateKey = (seg.startTime || 'Sin fecha').slice(0, 10);
-                if (!routesByDate[dateKey]) routesByDate[dateKey] = [];
+                const startIso = seg.startTime || '';
+                const endIso = seg.endTime || '';
+                const dateKey = (startIso || 'Sin fecha').slice(0, 10);
+                const bucket = ensureDateBucket(dateKey);
 
-                if (Array.isArray(seg.timelinePath)) {
-                  seg.timelinePath.forEach(tp => {
-                    if (tp.point) {
-                      const clean = tp.point.replace(/°/g, '').split(',');
-                      const lat = parseFloat(clean[0]);
-                      const lng = parseFloat(clean[1]);
-                      if (!isNaN(lat) && !isNaN(lng)) {
-                        routesByDate[dateKey].push({
-                          lat, lng, alt: 1600,
-                          name: `Registro ${dateKey}`,
-                          road: 'Google Maps Timeline'
-                        });
-                      }
+                const startMs = Date.parse(startIso);
+                const endMs = Date.parse(endIso);
+                const durationMin = (!isNaN(startMs) && !isNaN(endMs) && endMs > startMs)
+                  ? Math.max(1, Math.round((endMs - startMs) / 60000))
+                  : null;
+
+                // A. Puntos de traza GPS detallada (timelinePath)
+                if (Array.isArray(seg.timelinePath) && seg.timelinePath.length > 0) {
+                  seg.timelinePath.forEach((tp, idx) => {
+                    const coords = parseLatLngString(tp.point);
+                    if (coords) {
+                      const lm = findLocalLandmarkName(coords.lat, coords.lng);
+                      bucket.push({
+                        ts: Date.parse(tp.time || startIso) || 0,
+                        lat: coords.lat,
+                        lng: coords.lng,
+                        alt: 1600,
+                        name: lm || 'En ruta',
+                        road: 'Google Maps Timeline',
+                        checkpoint: Boolean(lm && idx % 15 === 0),
+                        bubble: (lm && idx % 20 === 0) ? `📍 Paso por ${lm}` : null
+                      });
                     }
                   });
                 }
 
+                // B. Segmentos de Actividad (activity: moto, auto, caminata, distancia)
                 if (seg.activity) {
-                  const startRaw = seg.activity.start?.latLng;
-                  const endRaw = seg.activity.end?.latLng;
-                  [startRaw, endRaw].forEach(raw => {
-                    if (raw) {
-                      const clean = raw.replace(/°/g, '').split(',');
-                      const lat = parseFloat(clean[0]);
-                      const lng = parseFloat(clean[1]);
-                      if (!isNaN(lat) && !isNaN(lng)) {
-                        routesByDate[dateKey].push({
-                          lat, lng, alt: 1600,
-                          name: `Trayecto ${dateKey}`,
-                          road: seg.activity.topCandidate?.type || 'Desplazamiento',
-                          checkpoint: true
-                        });
-                      }
-                    }
-                  });
+                  const actInfo = formatActivityLabel(seg.activity.topCandidate?.type);
+                  const distKmSeg = seg.activity.distanceMeters ? (seg.activity.distanceMeters / 1000).toFixed(1) : null;
+                  const sCoord = parseLatLngString(seg.activity.start?.latLng);
+                  const eCoord = parseLatLngString(seg.activity.end?.latLng);
+
+                  if (sCoord) {
+                    const lmStart = findLocalLandmarkName(sCoord.lat, sCoord.lng);
+                    bucket.push({
+                      ts: startMs || 0,
+                      lat: sCoord.lat,
+                      lng: sCoord.lng,
+                      alt: 1600,
+                      name: lmStart || `${actInfo.label}`,
+                      road: distKmSeg ? `${actInfo.label} · ${distKmSeg} km` : actInfo.label,
+                      checkpoint: true,
+                      bubble: distKmSeg
+                        ? `${actInfo.icon} ${actInfo.label} · Tramo de ${distKmSeg} km`
+                        : `${actInfo.icon} Inicio tramo ${actInfo.label}`
+                    });
+                  }
+                  if (eCoord) {
+                    const lmEnd = findLocalLandmarkName(eCoord.lat, eCoord.lng);
+                    bucket.push({
+                      ts: endMs || (startMs + 1000),
+                      lat: eCoord.lat,
+                      lng: eCoord.lng,
+                      alt: 1600,
+                      name: lmEnd || 'Fin de tramo',
+                      road: actInfo.label,
+                      checkpoint: Boolean(lmEnd),
+                      bubble: lmEnd ? `📍 Llegando a ${lmEnd}` : null
+                    });
+                  }
                 }
 
-                if (seg.visit?.topCandidate?.placeLocation?.latLng) {
-                  const clean = seg.visit.topCandidate.placeLocation.latLng.replace(/°/g, '').split(',');
-                  const lat = parseFloat(clean[0]);
-                  const lng = parseFloat(clean[1]);
-                  if (!isNaN(lat) && !isNaN(lng)) {
-                    routesByDate[dateKey].push({
-                      lat, lng, alt: 1600,
-                      name: `Parada (${dateKey})`,
-                      road: 'Lugar visitado',
-                      checkpoint: true
+                // C. Paradas / Puntos de Interés (visit)
+                if (seg.visit) {
+                  const rawPlace = seg.visit.topCandidate?.placeLocation?.latLng || seg.visit.topCandidate?.placeLocation;
+                  const vCoord = parseLatLngString(rawPlace);
+                  if (vCoord) {
+                    const lmVisit = findLocalLandmarkName(vCoord.lat, vCoord.lng);
+                    const semLabel = formatSemanticVisitType(seg.visit.topCandidate?.semanticType);
+                    const placeTitle = lmVisit || semLabel;
+                    const durStr = durationMin ? ` (${durationMin} min)` : '';
+
+                    bucket.push({
+                      ts: startMs || 0,
+                      lat: vCoord.lat,
+                      lng: vCoord.lng,
+                      alt: 1600,
+                      name: placeTitle,
+                      road: `${semLabel}${durStr}`,
+                      checkpoint: true,
+                      isVisit: true,
+                      durationMin,
+                      bubble: `🛑 Parada en ${placeTitle}${durStr}`
                     });
                   }
                 }
               });
             }
-            // Formato clásico Google Takeout (timelineObjects)
+            // 2. Formato clásico Google Takeout (timelineObjects)
             else if (Array.isArray(data.timelineObjects)) {
               data.timelineObjects.forEach(obj => {
                 const seg = obj.activitySegment;
                 const visit = obj.placeVisit;
-                const ts = seg?.duration?.startTimestamp || visit?.duration?.startTimestamp || 'Historial';
-                const dateKey = ts.slice(0, 10);
-                if (!routesByDate[dateKey]) routesByDate[dateKey] = [];
+                const tsRaw = seg?.duration?.startTimestamp || visit?.duration?.startTimestamp || 'Historial';
+                const endRaw = seg?.duration?.endTimestamp || visit?.duration?.endTimestamp || tsRaw;
+                const dateKey = tsRaw.slice(0, 10);
+                const bucket = ensureDateBucket(dateKey);
 
-                const path = seg?.waypointPath?.waypoints || seg?.simplifiedRawPath?.points;
-                if (Array.isArray(path)) {
-                  path.forEach(p => {
-                    const lat = (p.latE7 ?? p.latitudeE7) / 1e7;
-                    const lng = (p.lngE7 ?? p.longitudeE7) / 1e7;
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                      routesByDate[dateKey].push({
-                        lat, lng, alt: 1600,
-                        name: `Ruta ${dateKey}`,
-                        road: 'Google Timeline'
-                      });
-                    }
+                const startMs = Date.parse(tsRaw) || 0;
+                const endMs = Date.parse(endRaw) || startMs;
+                const durationMin = endMs > startMs ? Math.max(1, Math.round((endMs - startMs) / 60000)) : null;
+
+                if (seg) {
+                  const actInfo = formatActivityLabel(seg.activityType);
+                  const distKmSeg = seg.distance ? (seg.distance / 1000).toFixed(1) : null;
+                  const path = seg.waypointPath?.waypoints || seg.simplifiedRawPath?.points || [];
+
+                  if (path.length > 0) {
+                    path.forEach((p, idx) => {
+                      const lat = (p.latE7 ?? p.latitudeE7) / 1e7;
+                      const lng = (p.lngE7 ?? p.longitudeE7) / 1e7;
+                      if (!isNaN(lat) && !isNaN(lng)) {
+                        const lm = findLocalLandmarkName(lat, lng);
+                        bucket.push({
+                          ts: startMs + idx,
+                          lat, lng, alt: 1600,
+                          name: lm || 'En ruta',
+                          road: distKmSeg ? `${actInfo.label} · ${distKmSeg} km` : actInfo.label,
+                          checkpoint: idx === 0,
+                          bubble: idx === 0 && distKmSeg ? `${actInfo.icon} ${actInfo.label} (${distKmSeg} km)` : null
+                        });
+                      }
+                    });
+                  } else if (seg.startLocation?.latitudeE7 && seg.endLocation?.latitudeE7) {
+                    const sLat = seg.startLocation.latitudeE7 / 1e7;
+                    const sLng = seg.startLocation.longitudeE7 / 1e7;
+                    const eLat = seg.endLocation.latitudeE7 / 1e7;
+                    const eLng = seg.endLocation.longitudeE7 / 1e7;
+                    const lmS = findLocalLandmarkName(sLat, sLng);
+                    const lmE = findLocalLandmarkName(eLat, eLng);
+                    bucket.push({
+                      ts: startMs,
+                      lat: sLat, lng: sLng, alt: 1600,
+                      name: lmS || actInfo.label,
+                      road: actInfo.label,
+                      checkpoint: true,
+                      bubble: `${actInfo.icon} ${actInfo.label}${distKmSeg ? ` · ${distKmSeg} km` : ''}`
+                    });
+                    bucket.push({
+                      ts: endMs,
+                      lat: eLat, lng: eLng, alt: 1600,
+                      name: lmE || 'Fin de tramo',
+                      road: actInfo.label,
+                      checkpoint: Boolean(lmE)
+                    });
+                  }
+                }
+
+                if (visit?.location?.latitudeE7) {
+                  const vLat = visit.location.latitudeE7 / 1e7;
+                  const vLng = visit.location.longitudeE7 / 1e7;
+                  const placeTitle = visit.location.name || findLocalLandmarkName(vLat, vLng) || 'Parada registrada';
+                  const durStr = durationMin ? ` (${durationMin} min)` : '';
+                  bucket.push({
+                    ts: startMs,
+                    lat: vLat, lng: vLng, alt: 1600,
+                    name: placeTitle,
+                    road: visit.location.address || `Parada${durStr}`,
+                    checkpoint: true,
+                    isVisit: true,
+                    durationMin,
+                    bubble: `🛑 Parada en ${placeTitle}${durStr}`
                   });
                 }
-                if (visit?.location?.latitudeE7) {
-                  routesByDate[dateKey].push({
-                    lat: visit.location.latitudeE7 / 1e7,
-                    lng: visit.location.longitudeE7 / 1e7,
-                    alt: 1600,
-                    name: visit.location.name || `Parada ${dateKey}`,
-                    road: visit.location.address || 'Lugar visitado',
-                    checkpoint: true
+              });
+            }
+            // 3. Formato Records.json (locations array)
+            else if (Array.isArray(data.locations)) {
+              data.locations.forEach((loc, idx) => {
+                const tsRaw = loc.timestamp || 'Records';
+                const dateKey = tsRaw.slice(0, 10);
+                const bucket = ensureDateBucket(dateKey);
+                const lat = (loc.latitudeE7 ?? 0) / 1e7;
+                const lng = (loc.longitudeE7 ?? 0) / 1e7;
+                if (lat !== 0 && lng !== 0) {
+                  const lm = findLocalLandmarkName(lat, lng);
+                  bucket.push({
+                    ts: Date.parse(tsRaw) || idx,
+                    lat, lng,
+                    alt: loc.altitude ? Math.round(loc.altitude) : 1600,
+                    name: lm || 'En ruta',
+                    road: 'Google Records.json',
+                    checkpoint: Boolean(lm && idx % 10 === 0),
+                    bubble: (lm && idx % 15 === 0) ? `📍 Paso por ${lm}` : null
                   });
                 }
               });
             }
 
-            // Convertir días con al menos 2 puntos en rutas seleccionables
-            Object.keys(routesByDate).sort().reverse().forEach(dateKey => {
-              const pts = routesByDate[dateKey];
+            // Construir rutas ordenadas cronológicamente por fecha
+            Object.keys(eventsByDate).sort().reverse().forEach(dateKey => {
+              const rawEvents = eventsByDate[dateKey].sort((a, b) => a.ts - b.ts);
+              // Filtrar puntos duplicados idénticos consecutivos (< 15 metros) salvo que sean visitas
+              const pts = [];
+              for (const ev of rawEvents) {
+                if (pts.length === 0) {
+                  pts.push(ev);
+                } else {
+                  const prev = pts[pts.length - 1];
+                  const dKm = haversineKm(prev.lat, prev.lng, ev.lat, ev.lng);
+                  if (dKm > 0.015 || ev.isVisit) {
+                    pts.push(ev);
+                  } else if (ev.bubble && !prev.bubble) {
+                    prev.bubble = ev.bubble;
+                    prev.checkpoint = true;
+                  }
+                }
+              }
+
               if (pts.length >= 2) {
+                const visitsCount = pts.filter(p => p.isVisit).length;
+                const startLabel = pts[0].name !== 'En ruta' ? pts[0].name : 'Punto Inicial';
+                const endLabel = pts[pts.length - 1].name !== 'En ruta' ? pts[pts.length - 1].name : 'Destino Final';
+
                 pts[0].checkpoint = true;
-                pts[0].bubble = `🏍️ ¡Salida ${dateKey}!`;
+                pts[0].bubble = `🏍️ ¡Salida desde ${startLabel}!`;
                 pts[pts.length - 1].checkpoint = true;
-                pts[pts.length - 1].bubble = `🏁 ¡Fin del recorrido!`;
+                pts[pts.length - 1].bubble = `🏁 ¡Llegada a ${endLabel}!`;
 
                 let dist = 0;
                 for (let i = 1; i < pts.length; i++) {
@@ -1671,9 +2035,10 @@
 
                 detectedRoutes.push({
                   id: `tl-${dateKey}`,
-                  title: `Timeline Google Maps · ${dateKey}`,
-                  badge: `${dist.toFixed(1)} KM · ${pts.length} PTS`,
-                  subtitle: `Recorrido extraído de tu cronología (${dateKey})`,
+                  dateKey,
+                  title: `${dateKey}: ${startLabel} → ${endLabel}`,
+                  badge: `${dist.toFixed(1)} KM · ${visitsCount} PARADAS`,
+                  subtitle: `${pts.length} puntos GPS y ${visitsCount} paradas/POIs detectados`,
                   waypoints: pts
                 });
               }
@@ -1683,7 +2048,9 @@
           if (detectedRoutes.length > 0) {
             state.importedTimelineRoutes = detectedRoutes;
             renderRoutesModalLists();
-            showToast(`¡${detectedRoutes.length} recorrido(s) cargados de tu Timeline!`, 'success');
+            // Enriquecer nombres reales del recorrido más reciente automáticamente
+            enrichTimelineRouteNames(detectedRoutes[0]);
+            showToast(`¡${detectedRoutes.length} recorrido(s) con paradas y POIs cargados!`, 'success');
           } else {
             showToast('No se encontraron trayectos con coordenadas en ese archivo.', 'error');
           }
@@ -1728,6 +2095,9 @@
       card.addEventListener('click', () => {
         togglePlayPause(false);
         loadRoute(routeObj);
+        if (isTimeline) {
+          enrichTimelineRouteNames(routeObj);
+        }
         document.getElementById('routes-modal').classList.add('hidden');
         showToast(`Ruta cargada: ${routeObj.title}`, 'success');
       });
@@ -1743,43 +2113,49 @@
       state.plannerActive = force !== null ? force : !state.plannerActive;
       const stage = document.getElementById('cinema-stage');
       const banner = document.getElementById('planner-banner');
+      const callout = document.getElementById('moto-side-callout');
 
       if (state.plannerActive) {
         togglePlayPause(false);
         setFollowMoto(false);
         stage.classList.add('planner-active');
         banner.classList.remove('hidden');
-        document.getElementById('moto-side-callout').classList.add('hidden');
-        clearPlannerPins();
-        showToast('Haz clic en el mapa para marcar tu punto de salida');
+        if (callout) callout.classList.add('hidden');
+        showToast('Modo Planificador: escribe lugares o haz clic en el mapa', 'info');
       } else {
         stage.classList.remove('planner-active');
         banner.classList.add('hidden');
         clearPlannerPins();
-        updateSimulationFrame(false);
       }
     }
 
     function clearPlannerPins() {
       state.plannerPins = [];
       state.plannerComputedWaypoints = null;
+      state.plannerComputedDistKm = null;
       state.plannerPinMarkers.forEach(m => state.map.removeLayer(m));
       state.plannerPinMarkers = [];
-      if (state.plannerPreviewLine) state.map.removeLayer(state.plannerPreviewLine);
-      if (state.plannerPreviewOutline) state.map.removeLayer(state.plannerPreviewOutline);
+      if (state.plannerPreviewOutline) {
+        state.map.removeLayer(state.plannerPreviewOutline);
+        state.plannerPreviewOutline = null;
+      }
+      if (state.plannerPreviewLine) {
+        state.map.removeLayer(state.plannerPreviewLine);
+        state.plannerPreviewLine = null;
+      }
     }
 
-    async function addPlannerWaypoint(lat, lng) {
+    async function addPlannerWaypoint(lat, lng, customLabel = null) {
       const idx = state.plannerPins.length;
-      state.plannerPins.push({ lat, lng });
+      state.plannerPins.push({ lat, lng, name: customLabel });
 
-      const label = idx === 0 ? 'SALIDA' : `P${idx}`;
+      const label = customLabel ? customLabel : (idx === 0 ? 'SALIDA' : `P${idx}`);
       const bg = idx === 0 ? '#10B981' : '#FACC15';
       const pinIcon = L.divIcon({
         html: `<div class="px-2 py-0.5 rounded-full text-[10px] font-black text-[#18181B] border-2 border-[#18181B] shadow-[2px_2px_0px_#18181B] whitespace-nowrap" style="background:${bg}">${label}</div>`,
         className: 'planner-pin-icon',
-        iconSize: [54, 22],
-        iconAnchor: [27, 11]
+        iconSize: [74, 22],
+        iconAnchor: [37, 11]
       });
 
       const marker = L.marker([lat, lng], { icon: pinIcon }).addTo(state.map);
@@ -1787,6 +2163,33 @@
 
       if (state.plannerPins.length >= 2) {
         await fetchOsrmRoutePreview();
+      }
+    }
+
+    async function searchAndAddPlannerPlace() {
+      const input = document.getElementById('planner-search-input');
+      const query = input.value.trim();
+      if (!query) return;
+
+      try {
+        showToast(`Buscando "${query}"...`);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=co&q=${encodeURIComponent(query)}`;
+        const res = await fetch(url);
+        const results = await res.json();
+        if (results && results.length > 0) {
+          const place = results[0];
+          const lat = parseFloat(place.lat);
+          const lng = parseFloat(place.lon);
+          const shortName = place.display_name.split(',')[0];
+          state.map.setView([lat, lng], 12, { animate: true });
+          await addPlannerWaypoint(lat, lng, shortName);
+          input.value = '';
+          showToast(`Punto añadido: ${shortName}`, 'success');
+        } else {
+          showToast(`No se encontró "${query}". Prueba añadiendo el departamento.`, 'error');
+        }
+      } catch (err) {
+        showToast('Error al buscar el lugar.', 'error');
       }
     }
 
@@ -1820,15 +2223,19 @@
           }).addTo(state.map);
 
           // Construir waypoints con checkpoints en los pines marcados
-          state.plannerComputedWaypoints = geoCoords.map((c, i) => ({
-            lat: c[1],
-            lng: c[0],
-            alt: 1800,
-            name: i === 0 ? 'Punto de Salida' : i === geoCoords.length - 1 ? 'Destino Planificado' : `Carretera (${distKm} km)`,
-            road: `Ruta Planificada · ${distKm} km`,
-            checkpoint: i === 0 || i === geoCoords.length - 1,
-            bubble: i === 0 ? '🏍️ ¡Iniciando ruta planificada!' : i === geoCoords.length - 1 ? '🏁 ¡Destino alcanzado!' : null
-          }));
+          state.plannerComputedWaypoints = geoCoords.map((c, i) => {
+            const firstPinName = state.plannerPins[0]?.name || 'Punto de Salida';
+            const lastPinName = state.plannerPins[state.plannerPins.length - 1]?.name || 'Destino Planificado';
+            return {
+              lat: c[1],
+              lng: c[0],
+              alt: 1800,
+              name: i === 0 ? firstPinName : i === geoCoords.length - 1 ? lastPinName : `En ruta (${distKm} km)`,
+              road: `Ruta Planificada · ${distKm} km`,
+              checkpoint: i === 0 || i === geoCoords.length - 1,
+              bubble: i === 0 ? `🏍️ ¡Salida desde ${firstPinName}!` : i === geoCoords.length - 1 ? `🏁 ¡Llegada a ${lastPinName}!` : null
+            };
+          });
           state.plannerComputedDistKm = distKm;
 
           showToast(`Ruta trazada por carretera: ${distKm} km`, 'success');
@@ -1978,6 +2385,56 @@
       // Grabación WebM
       document.getElementById('btn-record-webm').addEventListener('click', toggleWebmRecording);
 
+      // Modal Añadir / Editar Comentario Cómic (POI personalizado en cualquier punto)
+      const poiModal = document.getElementById('poi-editor-modal');
+      document.getElementById('btn-open-poi-modal').addEventListener('click', () => {
+        togglePlayPause(false);
+        const pts = state.densePoints;
+        if (!pts.length) return;
+        const idx = Math.min(pts.length - 1, Math.floor(state.progress * (pts.length - 1)));
+        const currentPt = pts[idx];
+        const pct = Math.round(state.progress * 100);
+
+        document.getElementById('poi-modal-pct-badge').textContent = `${pct}% · ${currentPt.distKm.toFixed(1)} km`;
+        document.getElementById('poi-place-input').value = currentPt.name || '';
+        document.getElementById('poi-bubble-input').value = currentPt.bubble || `📍 ¡Paso por ${currentPt.name}!`;
+        poiModal.classList.remove('hidden');
+      });
+
+      document.getElementById('btn-cancel-poi-modal').addEventListener('click', () => {
+        poiModal.classList.add('hidden');
+      });
+
+      document.getElementById('btn-save-poi-modal').addEventListener('click', () => {
+        const pts = state.densePoints;
+        if (!pts.length) return;
+        const idx = Math.min(pts.length - 1, Math.floor(state.progress * (pts.length - 1)));
+        const currentPt = pts[idx];
+        const newPlace = document.getElementById('poi-place-input').value.trim() || currentPt.name;
+        const newBubble = document.getElementById('poi-bubble-input').value.trim() || `📍 ${newPlace}`;
+
+        // Insertar checkpoint directamente en la ruta actual
+        const wpIdx = Math.min(state.currentRoute.waypoints.length - 1, currentPt.waypointIdx || 0);
+        state.currentRoute.waypoints.splice(wpIdx + 1, 0, {
+          lat: currentPt.lat,
+          lng: currentPt.lng,
+          alt: currentPt.alt,
+          name: newPlace,
+          road: currentPt.road,
+          checkpoint: true,
+          bubble: newBubble
+        });
+
+        const savedProgress = state.progress;
+        loadRoute(state.currentRoute);
+        state.progress = savedProgress;
+        state.lastCalloutMilestone = '';
+        updateSimulationFrame(false);
+        triggerComicBubble(newBubble);
+        poiModal.classList.add('hidden');
+        showToast(`¡Comentario cómic añadido en ${newPlace}!`, 'success');
+      });
+
       // Modal Mis Rutas & Timeline.json
       const routesModal = document.getElementById('routes-modal');
       document.getElementById('btn-open-routes-modal').addEventListener('click', () => {
@@ -2008,6 +2465,13 @@
       // Planificador de Rutas Futuras
       document.getElementById('btn-toggle-planner').addEventListener('click', () => togglePlannerMode());
       document.getElementById('btn-planner-exit').addEventListener('click', () => togglePlannerMode(false));
+      document.getElementById('btn-planner-search-add').addEventListener('click', searchAndAddPlannerPlace);
+      document.getElementById('planner-search-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          searchAndAddPlannerPlace();
+        }
+      });
       document.getElementById('btn-planner-clear').addEventListener('click', () => {
         clearPlannerPins();
         showToast('Puntos limpiados');
