@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TROCOYT RUTA STUDIO · 16:9 Cartoon MotoTracker</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Fredoka (títulos cómic), Inter & JetBrains Mono (telemetría) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS v1.9.4 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- Leaflet JS v1.9.4 -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            comic: ['Fredoka', 'cursive', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            ktm: {
+              orange: '#FF6B00',
+              yellow: '#FACC15',
+              ink: '#18181B',
+              dark: '#0B0D10',
+              panel: '#12151C'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Fondo negro puro para recorte perfecto 16:9 en OBS / YouTube */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #000000;
+      color: #F3F4F6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Contenedor panorámico estricto 16:9 centrado */
+    #cinema-stage {
+      position: relative;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      background-color: #18181B;
+      overflow: hidden;
+      box-shadow: 0 0 0 2px #FF6B00, 0 25px 70px rgba(0, 0, 0, 0.95);
+    }
+
+    body.obs-clean-mode #cinema-stage {
+      box-shadow: none;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: #E5E7EB;
+    }
+
+    /* =========================================================================
+       FILTROS CSS CARTOON / CÓMIC PARA LOS TILES DE MAPA GRATUITOS
+       ========================================================================= */
+    .tile-cartoon-day {
+      filter: saturate(1.85) contrast(1.16) brightness(1.04) hue-rotate(-5deg);
+    }
+    .tile-cartoon-sunset {
+      filter: saturate(1.9) contrast(1.2) sepia(0.28) hue-rotate(-14deg);
+    }
+    .tile-cartoon-satellite {
+      filter: saturate(1.45) contrast(1.15);
+    }
+
+    /* Cursor de mira cuando el planificador de rutas está activo */
+    #cinema-stage.planner-active #map {
+      cursor: crosshair !important;
+    }
+
+    /* Controles Leaflet */
+    .leaflet-control-attribution {
+      background: rgba(24, 24, 27, 0.78) !important;
+      color: #D1D5DB !important;
+      font-size: 9px !important;
+      border-top-left-radius: 6px;
+      transition: opacity 0.3s ease;
+    }
+    body.obs-clean-mode .leaflet-control-attribution,
+    body.obs-clean-mode .leaflet-control-zoom {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    .leaflet-control-attribution a {
+      color: #FACC15 !important;
+    }
+    .leaflet-control-zoom {
+      border: 2px solid #18181B !important;
+      border-radius: 12px !important;
+      overflow: hidden;
+      box-shadow: 3px 3px 0px #18181B !important;
+      transition: opacity 0.3s ease;
+    }
+    .leaflet-control-zoom a {
+      background-color: #FFFFFF !important;
+      color: #18181B !important;
+      font-weight: 900 !important;
+      border-bottom: 2px solid #18181B !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background-color: #FF6B00 !important;
+      color: #FFFFFF !important;
+    }
+
+    /* Botones estilo cómic con sombra sólida */
+    .comic-btn {
+      border: 2px solid #18181B;
+      box-shadow: 3px 3px 0px #18181B;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+    }
+    .comic-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #18181B;
+    }
+    .comic-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #18181B;
+    }
+
+    .comic-panel {
+      background: rgba(18, 21, 28, 0.92);
+      backdrop-filter: blur(10px);
+      border: 2px solid #18181B;
+      box-shadow: 4px 4px 0px #18181B;
+    }
+
+    /* Slider estilo Cartoon KTM */
+    input[type=range].ktm-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type=range].ktm-slider::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 999px;
+    }
+    input[type=range].ktm-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: #FF6B00;
+      border: 3px solid #18181B;
+      box-shadow: 0 0 0 2px #FACC15, 2px 2px 0px #18181B;
+      margin-top: -6px;
+      transition: transform 0.15s ease;
+    }
+    input[type=range].ktm-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* =========================================================================
+       ANIMACIÓN MOTO CARTOON DUKE 200 NG (BOUNCE, INCLINACIÓN Y HUMO)
+       ========================================================================= */
+    .moto-marker-wrapper {
+      transition: transform 0.08s linear;
+      transform-origin: center center;
+      filter: drop-shadow(0 8px 6px rgba(0, 0, 0, 0.65));
+    }
+
+    @keyframes motoEngineBounce {
+      0%, 100% { transform: scale(1) translateY(0px); }
+      50% { transform: scale(1.045) translateY(-2px); }
+    }
+    .moto-bounce-body {
+      animation: motoEngineBounce 0.28s ease-in-out infinite;
+      transform-origin: center center;
+    }
+
+    @keyframes exhaustPuff1 {
+      0% { transform: translate(0, 0) scale(0.45); opacity: 0.95; }
+      100% { transform: translate(-6px, 20px) scale(1.75); opacity: 0; }
+    }
+    @keyframes exhaustPuff2 {
+      0% { transform: translate(0, 0) scale(0.35); opacity: 0.9; }
+      100% { transform: translate(6px, 22px) scale(1.9); opacity: 0; }
+    }
+    .smoke-puff-1 {
+      animation: exhaustPuff1 0.55s ease-out infinite;
+      transform-origin: 39px 72px;
+    }
+    .smoke-puff-2 {
+      animation: exhaustPuff2 0.55s ease-out 0.27s infinite;
+      transform-origin: 45px 73px;
+    }
+
+    /* Cartel estilo cómic siempre anclado al lado de la moto */
+    #moto-side-callout {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1450;
+      pointer-events: none;
+      will-change: transform;
+      transition: opacity 0.2s ease;
+    }
+
+    @keyframes calloutPopPulse {
+      0% { transform: scale(0.92); }
+      45% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    .callout-pop-anim {
+      animation: calloutPopPulse 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Pulso en checkpoints */
+    @keyframes pulseRing {
+      0% { transform: scale(0.8); opacity: 0.95; }
+      100% { transform: scale(2.3); opacity: 0; }
+    }
+    .checkpoint-pulse {
+      animation: pulseRing 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    /* Control de visibilidad para Modo Grabación OBS / Limpio */
+    .editor-ui {
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    body.obs-clean-mode .editor-ui {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(8px);
+    }
+
+    /* Lower-Third Broadcast Overlay para YouTube */
+    #broadcast-lower-third {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    body.hide-broadcast-pill #broadcast-lower-third {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(14px);
+    }
+  </style>
+</head>
+<body class="font-sans antialiased select-none">
+
+  <!-- LIENZO PRINCIPAL ESTRICTO 16:9 (1920x1080 PROPORCIONAL) -->
+  <main id="cinema-stage">
+
+    <!-- Contenedor del Mapa Leaflet -->
+    <div id="map"></div>
+
+    <!-- Cartel Cómic Permanente Anclado al Lado de la Moto -->
+    <div id="moto-side-callout" class="hidden">
+      <div id="moto-callout-card" class="relative bg-[#FACC15] text-[#18181B] border-[3px] border-[#18181B] shadow-[5px_5px_0px_#18181B] rounded-2xl px-3.5 py-2 min-w-[185px] max-w-[265px]">
+        <!-- Pico conector hacia la moto (lado izquierdo por defecto) -->
+        <div id="callout-tail-left" class="absolute top-1/2 -left-[11px] -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[11px] border-r-[#18181B]">
+          <div class="absolute -top-[5px] left-[3px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[8px] border-r-[#FACC15]"></div>
+        </div>
+        <!-- Pico conector hacia la moto (lado derecho cuando se voltea cerca del borde) -->
+        <div id="callout-tail-right" class="hidden absolute top-1/2 -right-[11px] -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[11px] border-l-[#18181B]">
+          <div class="absolute -top-[5px] right-[3px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[8px] border-l-[#FACC15]"></div>
+        </div>
+
+        <!-- Cabecera con Altitud y Distancia -->
+        <div class="flex items-center justify-between gap-2 mb-0.5">
+          <span id="callout-badge" class="text-[9px] font-mono font-black uppercase tracking-wider bg-[#FF6B00] text-white px-1.5 py-0.5 rounded border border-[#18181B]">EN RUTA</span>
+          <span id="callout-telemetry" class="text-[10px] font-mono font-extrabold text-[#18181B]">0.0km · 372m</span>
+        </div>
+
+        <!-- Nombre del Sector / Punto Clave -->
+        <div id="callout-title" class="font-comic text-sm sm:text-base font-bold leading-tight text-[#18181B] truncate">
+          Granada, Meta
+        </div>
+
+        <!-- Frase cómic destacada cuando pasa por un punto clave -->
+        <div id="callout-subtext" class="text-[11px] font-extrabold text-[#18181B]/90 mt-0.5 leading-snug">
+          🏍️ ¡Arrancamos desde Granada!
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner de Modo Planificador Activo -->
+    <div id="planner-banner" class="hidden editor-ui absolute top-16 left-1/2 -translate-x-1/2 z-[1400] bg-[#FACC15] text-[#18181B] border-2 border-[#18181B] shadow-[4px_4px_0px_#18181B] rounded-2xl px-4 py-2 flex items-center gap-3">
+      <span class="text-sm font-comic font-bold">🛣️ MODO PLANIFICADOR: Haz clic en el mapa para marcar Origen, Paradas y Destino</span>
+      <button id="btn-planner-undo" class="bg-white hover:bg-gray-100 text-[#18181B] border-2 border-[#18181B] px-2.5 py-1 rounded-lg text-xs font-extrabold">Deshacer</button>
+      <button id="btn-planner-clear" class="bg-red-500 hover:bg-red-600 text-white border-2 border-[#18181B] px-2.5 py-1 rounded-lg text-xs font-extrabold">Limpiar</button>
+      <button id="btn-planner-save-open" class="bg-[#FF6B00] hover:bg-[#ff7f24] text-white border-2 border-[#18181B] px-3 py-1 rounded-lg text-xs font-extrabold">Guardar Ruta</button>
+      <button id="btn-planner-exit" class="bg-[#18181B] text-white px-2.5 py-1 rounded-lg text-xs font-bold">✕</button>
+    </div>
+
+    <!-- Overlay de Cuenta Regresiva 3-2-1 para Toma Limpia -->
+    <div id="countdown-overlay" class="hidden absolute inset-0 z-[2500] bg-black/65 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none">
+      <div class="text-xs font-mono uppercase tracking-[0.25em] text-[#FACC15] font-bold mb-2">GRABACIÓN 16:9 LISTA</div>
+      <div id="countdown-number" class="font-comic text-8xl sm:text-9xl font-bold text-[#FF6B00] drop-shadow-[4px_4px_0px_#18181B]">3</div>
+      <div id="countdown-route-title" class="text-sm text-white mt-3 font-bold bg-[#18181B] px-4 py-1 rounded-full border-2 border-[#FF6B00]">Granada ➔ Puente Quetame ➔ Soacha</div>
+    </div>
+
+    <!-- Notificaciones Toast -->
+    <div id="toast-container" class="absolute top-16 left-1/2 -translate-x-1/2 z-[2200] pointer-events-none flex flex-col items-center gap-1.5 w-11/12 max-w-md"></div>
+
+    <!-- =========================================================================
+         1. BARRA SUPERIOR HUD (EDITOR DE PRODUCCIÓN CARTOON 16:9)
+         ========================================================================= -->
+    <header class="editor-ui absolute top-3 left-3 right-3 z-[1000] flex items-center justify-between gap-2 pointer-events-none">
+
+      <!-- Identidad del Estudio + Ruta Activa -->
+      <div class="comic-panel rounded-2xl px-3.5 py-2 flex items-center gap-3 pointer-events-auto">
+        <div class="w-9 h-9 rounded-xl bg-[#FF6B00] border-2 border-[#18181B] flex items-center justify-center text-[#18181B] shrink-0 shadow-[2px_2px_0px_#18181B]">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="5.5" cy="17.5" r="3.5"/>
+            <circle cx="18.5" cy="17.5" r="3.5"/>
+            <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/>
+          </svg>
+        </div>
+        <div class="max-w-[200px] sm:max-w-[300px]">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.2 rounded bg-[#FACC15] text-[#18181B] font-black border border-[#18181B]">TROCOYT STUDIO</span>
+            <span class="text-[10px] text-gray-300 font-mono font-bold">16:9 · SIN API</span>
+          </div>
+          <h1 id="header-route-title" class="text-xs sm:text-sm font-extrabold text-white tracking-tight truncate">
+            Hoy: Granada ➔ Puente Quetame ➔ Soacha
+          </h1>
+        </div>
+      </div>
+
+      <!-- Herramientas Principales -->
+      <div class="flex items-center gap-1.5 sm:gap-2 pointer-events-auto flex-wrap justify-end">
+
+        <!-- Botón Modal: Mis Rutas Maps / Timeline.json -->
+        <button id="btn-open-routes-modal" class="comic-btn bg-[#FACC15] hover:bg-[#fde047] text-[#18181B] px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
+          <span>📍 Mis Rutas / Timeline</span>
+        </button>
+
+        <!-- Botón Planificador de Rutas Futuras -->
+        <button id="btn-toggle-planner" class="comic-btn bg-emerald-400 hover:bg-emerald-300 text-[#18181B] px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
+          <span>🛣️ Planificar Ruta</span>
+        </button>
+
+        <!-- Selector Estilo Cartoon (Día / Atardecer / Satélite) -->
+        <button id="btn-map-layer" title="Cambiar estilo visual Cartoon" class="comic-btn bg-white hover:bg-gray-100 text-[#18181B] px-2.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
+          <span>🎨</span>
+          <span id="layer-label" class="hidden md:inline">Cartoon Día</span>
+        </button>
+
+        <!-- Grabar .webm Directo -->
+        <button id="btn-record-webm" title="Grabar clip .webm en 16:9" class="comic-btn bg-rose-500 hover:bg-rose-400 text-white px-2.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
+          <span id="webm-rec-dot" class="w-2.5 h-2.5 rounded-full bg-white border border-[#18181B]"></span>
+          <span id="webm-rec-label" class="hidden sm:inline">Grabar .webm</span>
+        </button>
+
+        <!-- Toggle Lower-Third YouTube -->
+        <button id="btn-toggle-pill" title="Mostrar u ocultar barra inferior YouTube" class="comic-btn bg-[#18181B] text-[#FACC15] px-2.5 py-2 rounded-xl text-xs font-bold">
+          <span id="pill-toggle-label">HUD YT: ON</span>
+        </button>
+
+        <!-- Modo OBS / Limpio (Tecla H) -->
+        <button id="btn-obs-mode" title="Ocultar controles para grabar en OBS (Tecla H)" class="comic-btn bg-[#FF6B00] hover:bg-[#ff8126] text-[#18181B] px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1.5">
+          <span>🎬 Modo OBS (H)</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- =========================================================================
+         2. PANEL LATERAL DERECHO DE TELEMETRÍA Y ELEVACIÓN (MODO EDICIÓN)
+         ========================================================================= -->
+    <aside class="editor-ui absolute top-16 right-3 z-[1000] w-64 sm:w-72 pointer-events-none flex flex-col gap-2">
+
+      <div class="comic-panel rounded-2xl p-3 pointer-events-auto">
+        <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#FF6B00] border border-white"></span>
+            <span class="text-[10px] font-mono uppercase tracking-wider text-gray-200 font-bold">DUKE 200 NG · TELEMETRÍA</span>
+          </div>
+          <span id="hud-percent" class="font-mono text-[11px] font-black text-[#18181B] bg-[#FACC15] px-2 py-0.5 rounded-md border border-[#18181B]">0%</span>
+        </div>
+
+        <!-- Sector Actual -->
+        <div class="mb-2.5">
+          <div class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Sector Actual</div>
+          <div id="hud-segment" class="text-xs sm:text-sm font-extrabold text-white truncate">Granada, Meta</div>
+          <div id="hud-road" class="text-[10px] font-mono text-[#FF6B00] truncate">RN-65 · Inicio de Ruta</div>
+        </div>
+
+        <!-- Métricas: Distancia y Altitud -->
+        <div class="grid grid-cols-2 gap-2 mb-2.5">
+          <div class="bg-black/50 rounded-xl p-2 border border-white/10">
+            <div class="text-[9px] text-gray-400 uppercase font-bold">Distancia</div>
+            <div class="flex items-baseline gap-1">
+              <span id="hud-distance" class="font-mono text-base font-extrabold text-white">0.0</span>
+              <span class="text-[10px] font-mono text-gray-400">/ <span id="hud-total-distance">195.4</span>km</span>
+            </div>
+          </div>
+          <div class="bg-black/50 rounded-xl p-2 border border-white/10">
+            <div class="text-[9px] text-gray-400 uppercase font-bold">Altitud</div>
+            <div class="flex items-baseline gap-1">
+              <span id="hud-altitude" class="font-mono text-base font-extrabold text-[#FACC15]">372</span>
+              <span class="text-[10px] font-mono text-gray-400">m</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Perfil de Elevación SVG Sincronizado -->
+        <div class="bg-black/60 rounded-xl p-2 border border-white/10">
+          <div class="flex justify-between items-center text-[9px] font-mono text-gray-400 mb-1">
+            <span>RELIEVE DE RUTA</span>
+            <span id="elev-max-label" class="text-[#FF6B00] font-bold">MAX 3,115m</span>
+          </div>
+          <div class="relative w-full h-12">
+            <svg id="elevation-svg" class="w-full h-full overflow-visible" viewBox="0 0 260 60" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="elevGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#FF6B00" stop-opacity="0.65" />
+                  <stop offset="100%" stop-color="#FACC15" stop-opacity="0.05" />
+                </linearGradient>
+                <clipPath id="progress-clip">
+                  <rect id="elev-clip-rect" x="0" y="0" width="0" height="60" />
+                </clipPath>
+              </defs>
+              <path id="elev-bg-area" d="" fill="rgba(255,255,255,0.06)" />
+              <path id="elev-bg-line" d="" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-dasharray="3,3" />
+              <g clip-path="url(#progress-clip)">
+                <path id="elev-active-area" d="" fill="url(#elevGradient)" />
+                <path id="elev-active-line" d="" fill="none" stroke="#FF6B00" stroke-width="2.5" />
+              </g>
+              <line id="elev-cursor-line" x1="0" y1="0" x2="0" y2="60" stroke="#FACC15" stroke-width="1.5" stroke-dasharray="2,2" />
+              <circle id="elev-cursor-dot" cx="0" cy="50" r="4" fill="#FACC15" stroke="#18181B" stroke-width="2" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checkpoints rápidos -->
+      <div class="hidden xl:block comic-panel rounded-2xl p-2.5 pointer-events-auto max-h-36 overflow-y-auto">
+        <div class="text-[9px] font-mono uppercase tracking-wider text-[#FACC15] font-bold mb-1.5 px-1">Puntos Clave de Ruta</div>
+        <div id="checkpoints-list" class="space-y-0.5"></div>
+      </div>
+    </aside>
+
+    <!-- =========================================================================
+         3. BARRA INFERIOR DE REPRODUCCIÓN (MODO EDICIÓN)
+         ========================================================================= -->
+    <footer class="editor-ui absolute bottom-3 left-3 right-3 z-[1000] flex justify-center pointer-events-none">
+      <div class="comic-panel rounded-2xl p-2.5 sm:p-3 w-full max-w-4xl pointer-events-auto">
+
+        <!-- Timeline Scrubber -->
+        <div class="flex items-center gap-3 mb-2">
+          <span id="time-elapsed" class="font-mono text-[11px] font-bold text-[#FACC15] w-10 text-right">00:00</span>
+          <div class="relative flex-1 flex items-center">
+            <input id="timeline-slider" type="range" min="0" max="1000" value="0" step="1" class="ktm-slider w-full z-10" />
+            <div class="absolute left-0 right-0 h-2 bg-gray-800 rounded-full overflow-hidden pointer-events-none border border-black">
+              <div id="slider-fill" class="h-full bg-gradient-to-r from-[#FF6B00] to-[#FACC15] w-0"></div>
+            </div>
+          </div>
+          <span id="time-total" class="font-mono text-[11px] text-gray-300 w-10">100%</span>
+        </div>
+
+        <!-- Botonera Principal -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
+
+          <!-- Play/Pause + Intro 3-2-1 -->
+          <div class="flex items-center gap-2">
+            <button id="btn-play-pause" class="comic-btn bg-[#FF6B00] hover:bg-[#ff7f24] text-[#18181B] font-black px-4 py-2 rounded-xl text-xs flex items-center gap-1.5">
+              <svg id="icon-play" class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg id="icon-pause" class="w-3.5 h-3.5 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              <span id="play-label">Reproducir</span>
+            </button>
+
+            <!-- Botón Intro 3-2-1 (Tecla R) -->
+            <button id="btn-countdown-take" title="Reinicia al 0%, activa Modo Limpio, cuenta 3-2-1 y arranca (Tecla R)" class="comic-btn bg-[#FACC15] hover:bg-[#fde047] text-[#18181B] font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
+              <span>⏱️ Intro 3-2-1 (R)</span>
+            </button>
+
+            <button id="btn-restart" title="Reiniciar al inicio" class="comic-btn bg-white hover:bg-gray-100 text-[#18181B] p-2 rounded-xl">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+          </div>
+
+          <!-- Velocidades (0.5x, 1x, 2x, 4x) -->
+          <div class="flex items-center bg-black/70 p-1 rounded-xl border-2 border-[#18181B]">
+            <span class="text-[9px] font-mono text-gray-400 px-1.5 hidden sm:inline font-bold">VEL:</span>
+            <button data-speed="0.5" class="speed-btn px-2 py-1 rounded-lg text-[11px] font-mono font-bold text-gray-300 hover:text-white transition">0.5x</button>
+            <button data-speed="1" class="speed-btn px-2 py-1 rounded-lg text-[11px] font-mono font-bold text-gray-300 hover:text-white transition">1x</button>
+            <button data-speed="2" class="speed-btn px-2 py-1 rounded-lg text-[11px] font-mono font-black bg-[#FF6B00] text-[#18181B] transition">2x</button>
+            <button data-speed="4" class="speed-btn px-2 py-1 rounded-lg text-[11px] font-mono font-bold text-gray-300 hover:text-white transition">4x</button>
+          </div>
+
+          <!-- Cámara Dinámica: Seguimiento Cercano vs Vista Panorámica -->
+          <div class="flex items-center gap-1.5">
+            <button id="btn-follow-moto" class="comic-btn bg-[#FF6B00] text-[#18181B] px-3 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5">
+              <span id="follow-label">🎥 Seguimiento Cercano</span>
+            </button>
+
+            <button id="btn-fit-route" title="Encuadrar vista panorámica de toda la ruta" class="comic-btn bg-white hover:bg-gray-100 text-[#18181B] px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold hidden sm:flex items-center gap-1">
+              <span>🗺️ Panorámica</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </footer>
+
+    <!-- =========================================================================
+         4. LOWER-THIRD BROADCAST OVERLAY (ESTILO MOTOVLOG YOUTUBE)
+         ========================================================================= -->
+    <div id="broadcast-lower-third" class="absolute bottom-5 left-5 z-[1100] pointer-events-none flex items-stretch rounded-2xl overflow-hidden border-[3px] border-[#18181B] shadow-[5px_5px_0px_#18181B] bg-[#12151C]/95 backdrop-blur-md">
+      <!-- Franja lateral naranja KTM -->
+      <div class="bg-[#FF6B00] text-[#18181B] px-3 py-2.5 flex flex-col justify-between items-center border-r-[3px] border-[#18181B]">
+        <span class="font-comic text-[10px] font-bold tracking-wider uppercase">MOTO</span>
+        <svg class="w-5 h-5 my-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5.5" cy="17.5" r="3.5"/>
+          <circle cx="18.5" cy="17.5" r="3.5"/>
+          <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/>
+        </svg>
+        <span class="font-mono text-[9px] font-black uppercase bg-[#FACC15] px-1 rounded border border-[#18181B]">LOG</span>
+      </div>
+
+      <!-- Datos de Telemetría Broadcast -->
+      <div class="px-4 py-2.5 flex flex-col justify-center min-w-[270px]">
+        <div class="flex items-center justify-between gap-4 mb-0.5">
+          <span id="yt-pill-title" class="text-[10px] font-mono uppercase tracking-widest text-[#FACC15] font-extrabold">TROCOYT · RUTA VÍA AL LLANO</span>
+          <span id="yt-pill-road" class="text-[10px] font-mono text-gray-300 font-bold">RN-65</span>
+        </div>
+        <div id="yt-pill-segment" class="text-base font-extrabold text-white tracking-tight leading-snug">
+          Granada, Meta
+        </div>
+        <div class="flex items-center gap-4 mt-1.5 pt-1.5 border-t border-white/15 font-mono text-xs">
+          <div>
+            <span class="text-gray-400 text-[10px]">DIST: </span>
+            <span id="yt-pill-dist" class="text-white font-extrabold">0.0</span>
+            <span class="text-gray-400 text-[10px]"> km</span>
+          </div>
+          <div>
+            <span class="text-gray-400 text-[10px]">ALT: </span>
+            <span id="yt-pill-alt" class="text-[#FF6B00] font-extrabold">372</span>
+            <span class="text-gray-400 text-[10px]"> msnm</span>
+          </div>
+          <div class="ml-auto">
+            <span id="yt-pill-pct" class="text-[10px] bg-[#FACC15] text-[#18181B] px-1.5 py-0.5 rounded font-black border border-[#18181B]">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         5. MODAL: MIS RUTAS MAPS / TIMELINE.JSON / GPX
+         ========================================================================= -->
+    <div id="routes-modal" class="hidden absolute inset-0 z-[3000] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-[#12151C] border-[3px] border-[#18181B] shadow-[8px_8px_0px_#FF6B00] rounded-3xl w-full max-w-3xl max-h-[88%] flex flex-col overflow-hidden">
+        
+        <!-- Cabecera Modal -->
+        <div class="bg-[#FF6B00] text-[#18181B] px-5 py-3.5 border-b-[3px] border-[#18181B] flex items-center justify-between">
+          <div>
+            <h2 class="font-comic text-xl font-bold leading-none">📍 Mis Rutas y Google Maps Timeline</h2>
+            <p class="text-xs font-bold opacity-85 mt-0.5">Elige una ruta guardada o importa tu archivo Timeline.json del celular</p>
+          </div>
+          <button id="btn-close-routes-modal" class="w-8 h-8 rounded-xl bg-[#18181B] text-white font-black flex items-center justify-center hover:scale-105 transition">✕</button>
+        </div>
+
+        <!-- Contenido Scrolleable -->
+        <div class="p-5 overflow-y-auto space-y-5">
+          
+          <!-- Zona Drag & Drop para Timeline.json / GPX -->
+          <div id="drop-zone-timeline" class="border-2 border-dashed border-[#FACC15] bg-black/40 hover:bg-black/60 rounded-2xl p-4 text-center transition cursor-pointer">
+            <input id="file-import-timeline" type="file" accept=".json,.gpx,.geojson" class="hidden" />
+            <div class="text-2xl mb-1">📂</div>
+            <div class="text-sm font-extrabold text-white">Arrastra aquí tu <span class="text-[#FACC15]">Timeline.json</span> o archivo <span class="text-[#FF6B00]">.GPX</span></div>
+            <div class="text-xs text-gray-400 mt-0.5">Haz clic para seleccionar desde tu computador (agrupa tus días y trayectos automáticamente)</div>
+            
+            <!-- Guía rápida 3 pasos -->
+            <div class="mt-3 pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2 text-left text-[11px]">
+              <div class="bg-white/5 p-2 rounded-xl">
+                <span class="text-[#FACC15] font-black">1. En tu celular:</span> Abre Google Maps ➔ Tu foto ➔ <b>Tu cronología</b>.
+              </div>
+              <div class="bg-white/5 p-2 rounded-xl">
+                <span class="text-[#FACC15] font-black">2. Exportar:</span> Toca los tres puntos (⋮) o ⚙️ ➔ <b>Exportar datos de cronología</b>.
+              </div>
+              <div class="bg-white/5 p-2 rounded-xl">
+                <span class="text-[#FACC15] font-black">3. Animar:</span> Sube el archivo <code>Timeline.json</code> aquí y elige el día del viaje.
+              </div>
+            </div>
+          </div>
+
+          <!-- Rutas extraídas del Timeline.json (si el usuario subió uno) -->
+          <div id="imported-timeline-section" class="hidden">
+            <h3 class="text-xs font-mono uppercase tracking-wider text-emerald-400 font-extrabold mb-2">✨ Días y Trayectos Detectados en tu Timeline.json</h3>
+            <div id="imported-routes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+          </div>
+
+          <!-- Rutas Precargadas y Guardadas -->
+          <div>
+            <h3 class="text-xs font-mono uppercase tracking-wider text-[#FACC15] font-extrabold mb-2">🏍️ Rutas Precargadas y Planificadas</h3>
+            <div id="saved-routes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         6. MODAL GUARDAR RUTA PLANIFICADA
+         ========================================================================= -->
+    <div id="save-planner-modal" class="hidden absolute inset-0 z-[3100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-[#12151C] border-[3px] border-[#18181B] shadow-[6px_6px_0px_#FACC15] rounded-2xl w-full max-w-md p-5">
+        <h3 class="font-comic text-lg font-bold text-[#FACC15] mb-1">💾 Guardar Nueva Ruta Planificada</h3>
+        <p class="text-xs text-gray-300 mb-3">Ponle un título para tu intro de YouTube y anímala de inmediato.</p>
+        <input id="planner-route-name-input" type="text" placeholder="Ej: Próxima Rodada: Soacha ➔ Villa de Leyva" class="w-full bg-black/60 border-2 border-[#18181B] focus:border-[#FF6B00] rounded-xl px-3 py-2 text-sm text-white font-bold outline-none mb-4" />
+        <div class="flex justify-end gap-2">
+          <button id="btn-cancel-save-planner" class="comic-btn bg-gray-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">Cancelar</button>
+          <button id="btn-confirm-save-planner" class="comic-btn bg-[#FF6B00] text-[#18181B] px-4 py-1.5 rounded-xl text-xs font-black">Guardar y Animar</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    /**
+     * ============================================================================
+     * RUTAS PRECARGADAS DE EJEMPLO (GRANADA -> SOACHA, ZIPAQUIRÁ, SUMAPAZ)
+     * ============================================================================
+     */
+    const PRESET_ROUTES = [
+      {
+        id: 'granada-soacha',
+        title: 'Hoy: Granada (Meta) → Puente Quetame → Soacha',
+        badge: 'RUTA DE HOY · ~195 KM',
+        subtitle: 'RN-65 Troncal del Llano & Vía al Llano RN-40',
+        waypoints: [
+          { lat: 3.5463, lng: -73.7069, alt: 372, name: "Granada, Meta", road: "RN-65 · Inicio de Ruta", checkpoint: true, bubble: "🏍️ ¡Arrancamos desde Granada!" },
+          { lat: 3.5685, lng: -73.7021, alt: 378, name: "Salida Norte Granada", road: "RN-65 · Troncal del Llano" },
+          { lat: 3.6020, lng: -73.6980, alt: 385, name: "Recta Río Ariari", road: "RN-65 · Troncal del Llano" },
+          { lat: 3.6450, lng: -73.6975, alt: 396, name: "Sector Puerto Caldas", road: "RN-65 · Troncal del Llano" },
+          { lat: 3.6961, lng: -73.6996, alt: 412, name: "San Martín, Meta", road: "RN-65 · Paso Urbano", checkpoint: true, bubble: "🌴 ¡Paso por San Martín!" },
+          { lat: 3.7420, lng: -73.7185, alt: 430, name: "Sabanas de San Martín", road: "RN-65 · Troncal del Llano" },
+          { lat: 3.7950, lng: -73.7410, alt: 452, name: "Recta hacia Guamal", road: "RN-65 · Troncal del Llano" },
+          { lat: 3.8410, lng: -73.7580, alt: 478, name: "Río Humadea", road: "RN-65 · Troncal del Llano" },
+          { lat: 3.8808, lng: -73.7656, alt: 505, name: "Guamal, Meta", road: "RN-65 · Paso Urbano", checkpoint: true },
+          { lat: 3.9180, lng: -73.7640, alt: 522, name: "Sector Castilla La Nueva", road: "RN-65 · Troncal del Llano" },
+          { lat: 3.9885, lng: -73.7595, alt: 548, name: "Acacías, Meta", road: "RN-65 · Paso Urbano", checkpoint: true, bubble: "⚡ ¡Acacías · Pie de Monte!" },
+          { lat: 4.0280, lng: -73.7320, alt: 530, name: "Recta Acacías - Villavicencio", road: "RN-65 · Pie de Monte" },
+          { lat: 4.0690, lng: -73.6980, alt: 502, name: "Sector La Cuncia", road: "RN-65 · Pie de Monte" },
+          { lat: 4.1420, lng: -73.6266, alt: 467, name: "Villavicencio, Meta", road: "RN-40 · Inicio Vía al Llano", checkpoint: true, bubble: "⛰️ ¡Subiendo Vía al Llano!" },
+          { lat: 4.1720, lng: -73.6890, alt: 820, name: "Túnel Buenavista", road: "RN-40 · Doble Calzada" },
+          { lat: 4.1865, lng: -73.7240, alt: 1050, name: "Peaje Pipiral", road: "RN-40 · Peaje Pipiral", checkpoint: true },
+          { lat: 4.2110, lng: -73.7880, alt: 1120, name: "Cañón Río Negro", road: "RN-40 · Curvas de Montaña" },
+          { lat: 4.2279, lng: -73.8162, alt: 1190, name: "Guayabetal, Cundinamarca", road: "RN-40 · Túneles y Viaductos", checkpoint: true },
+          { lat: 4.2720, lng: -73.8410, alt: 1380, name: "Túneles de Monterredondo", road: "RN-40 · Cordillera Oriental" },
+          { lat: 4.3292, lng: -73.8617, alt: 1540, name: "Puente Quetame, Cundinamarca", road: "RN-40 · Registro Timeline Maps", checkpoint: true, bubble: "📍 ¡Puente Quetame!" },
+          { lat: 4.3690, lng: -73.9210, alt: 1980, name: "Sector Naranjal", road: "RN-40 · Peaje Naranjal" },
+          { lat: 4.4120, lng: -73.9890, alt: 2450, name: "Paso por Cáqueza", road: "RN-40 · Curvas de Montaña" },
+          { lat: 4.4426, lng: -74.0445, alt: 2790, name: "Chipaque, Cundinamarca", road: "RN-40 · Subida de Montaña", checkpoint: true },
+          { lat: 4.4765, lng: -74.0890, alt: 3115, name: "Alto de Boquerón (3,115m)", road: "RN-40 · Punto Más Alto", checkpoint: true, bubble: "❄️ ¡Cima Boquerón 3,115m!" },
+          { lat: 4.5049, lng: -74.1165, alt: 2680, name: "Bogotá · Portal Usme", road: "Av. Caracas / Boyacá", checkpoint: true },
+          { lat: 4.5540, lng: -74.1420, alt: 2595, name: "Av. Boyacá · Tunal", road: "Av. Boyacá · Bogotá D.C." },
+          { lat: 4.5981, lng: -74.1650, alt: 2575, name: "Autopista Sur · Bosa", road: "RN-40 · Salida Sur Bogotá", checkpoint: true },
+          { lat: 4.5794, lng: -74.2144, alt: 2565, name: "Soacha, Cundinamarca", road: "Destino Final · Llegada", checkpoint: true, bubble: "🏁 ¡Llegada a Soacha!" }
+        ]
+      },
+      {
+        id: 'soacha-zipaquira',
+        title: 'Ruta Zipaquirá → Plaza de los Comuneros',
+        badge: 'RODADA SABANA · ~62 KM',
+        subtitle: 'Soacha ➔ Av. Boyacá ➔ Chía ➔ Zipaquirá',
+        waypoints: [
+          { lat: 4.5794, lng: -74.2144, alt: 2565, name: "Soacha, Cundinamarca", road: "Autopista Sur · Salida", checkpoint: true, bubble: "🏍️ ¡Rodada hacia Zipaquirá!" },
+          { lat: 4.6150, lng: -74.1520, alt: 2570, name: "Av. Boyacá · Kennedy", road: "Av. Boyacá · Bogotá" },
+          { lat: 4.6680, lng: -74.1120, alt: 2575, name: "Av. Boyacá · Salitre", road: "Av. Boyacá · Bogotá" },
+          { lat: 4.7250, lng: -74.0720, alt: 2580, name: "Av. Boyacá · Colina", road: "Av. Boyacá · Norte", checkpoint: true },
+          { lat: 4.7690, lng: -74.0450, alt: 2585, name: "Autopista Norte · Peaje Andes", road: "RN-45A · Salida Norte" },
+          { lat: 4.8616, lng: -74.0325, alt: 2562, name: "Chía · Puente del Común", road: "RN-45A · Sabana Centro", checkpoint: true, bubble: "🌉 ¡Puente del Común!" },
+          { lat: 4.9220, lng: -74.0210, alt: 2570, name: "Cajicá, Cundinamarca", road: "RN-45A · Variante Cajicá", checkpoint: true },
+          { lat: 5.0220, lng: -74.0040, alt: 2650, name: "Zipaquirá · Plaza de los Comuneros", road: "Destino Final · Catedral de Sal", checkpoint: true, bubble: "🏁 ¡Plaza de los Comuneros!" }
+        ]
+      },
+      {
+        id: 'sumapaz-choachi',
+        title: 'Aventura Páramo de Sumapaz / Choachí',
+        badge: 'CURVAS Y NEBLINA · ~88 KM',
+        subtitle: 'Bogotá ➔ Páramo El Verjón ➔ Choachí ➔ Ubaque',
+        waypoints: [
+          { lat: 4.5981, lng: -74.0760, alt: 2620, name: "Bogotá · Monserrate / Circunvalar", road: "Vía Choachí · Inicio", checkpoint: true, bubble: "🌫️ ¡Rumbo al Páramo!" },
+          { lat: 4.5760, lng: -74.0350, alt: 3050, name: "Mirador La Peña", road: "Vía Choachí · Ascenso" },
+          { lat: 4.5625, lng: -74.0015, alt: 3290, name: "Páramo El Verjón", road: "Alta Montaña · 3,290m", checkpoint: true, bubble: "❄️ ¡Páramo El Verjón 3,290m!" },
+          { lat: 4.5410, lng: -73.9620, alt: 2540, name: "Descenso Curvas Choachí", road: "Vía Choachí · Curvas Técnicas" },
+          { lat: 4.5275, lng: -73.9228, alt: 1924, name: "Choachí, Cundinamarca", road: "Parque Principal", checkpoint: true, bubble: "☕ ¡Parada en Choachí!" },
+          { lat: 4.4850, lng: -73.9345, alt: 1867, name: "Ubaque, Cundinamarca", road: "Valle de Oriente", checkpoint: true },
+          { lat: 4.4426, lng: -74.0445, alt: 2790, name: "Conexión Chipaque / Alto Cruz Verde", road: "Páramo Cruz Verde · Regreso", checkpoint: true, bubble: "🏁 ¡Vuelta completada!" }
+        ]
+      }
+    ];
+
+    /**
+     * ============================================================================
+     * ESTADO GLOBAL DE LA APLICACIÓN
+     * ============================================================================
+     */
+    const state = {
+      map: null,
+      tileLayers: {},
+      currentLayerKey: 'day',
+      routes: [...PRESET_ROUTES],
+      importedTimelineRoutes: [],
+      currentRoute: PRESET_ROUTES[0],
+      densePoints: [],
+      totalDistanceKm: 0,
+      isPlaying: false,
+      progress: 0,
+      baseDurationSec: 28,
+      speedMultiplier: 2,
+      followMoto: true,
+      lastFrameTime: null,
+      obsCleanMode: false,
+      showBroadcastPill: true,
+      countdownTimer: null,
+      lastCalloutMilestone: '',
+      activeBubbleText: '',
+
+      // Grabación WebM
+      mediaRecorder: null,
+      recordedChunks: [],
+      isRecordingWebm: false,
+
+      // Planificador de Rutas Futuras (OSRM)
+      plannerActive: false,
+      plannerPins: [],
+      plannerPinMarkers: [],
+      plannerPreviewLine: null,
+      plannerPreviewOutline: null,
+      plannerComputedWaypoints: null,
+
+      // Capas Leaflet de Animación
+      guideOutline: null,
+      guidePolyline: null,
+      activeTrailOutline: null,
+      activeTrailFill: null,
+      activeTrailDash: null,
+      motoMarker: null,
+      checkpointMarkers: []
+    };
+
+    /**
+     * ============================================================================
+     * UTILIDADES GEOGRÁFICAS Y MATEMÁTICAS
+     * ============================================================================
+     */
+    function toRad(deg) { return deg * Math.PI / 180; }
+    function toDeg(rad) { return rad * 180 / Math.PI; }
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+      const phi1 = toRad(lat1);
+      const phi2 = toRad(lat2);
+      const deltaLambda = toRad(lon2 - lon1);
+      const y = Math.sin(deltaLambda) * Math.cos(phi2);
+      const x = Math.cos(phi1) * Math.sin(phi2) -
+                Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
+      const theta = Math.atan2(y, x);
+      return (toDeg(theta) + 360) % 360;
+    }
+
+    function interpolateRoute(waypoints, subdivisionsPerSegment = 14) {
+      if (waypoints.length < 2) return waypoints;
+      const dense = [];
+      let cumulativeDist = 0;
+
+      for (let i = 0; i < waypoints.length - 1; i++) {
+        const p0 = waypoints[Math.max(0, i - 1)];
+        const p1 = waypoints[i];
+        const p2 = waypoints[i + 1];
+        const p3 = waypoints[Math.min(waypoints.length - 1, i + 2)];
+
+        const steps = subdivisionsPerSegment;
+        for (let step = 0; step < steps; step++) {
+          const t = step / steps;
+          const t2 = t * t;
+          const t3 = t2 * t;
+
+          const lat = 0.5 * (
+            (2 * p1.lat) +
+            (-p0.lat + p2.lat) * t +
+            (2 * p0.lat - 5 * p1.lat + 4 * p2.lat - p3.lat) * t2 +
+            (-p0.lat + 3 * p1.lat - 3 * p2.lat + p3.lat) * t3
+          );
+          const lng = 0.5 * (
+            (2 * p1.lng) +
+            (-p0.lng + p2.lng) * t +
+            (2 * p0.lng - 5 * p1.lng + 4 * p2.lng - p3.lng) * t2 +
+            (-p0.lng + 3 * p1.lng - 3 * p2.lng + p3.lng) * t3
+          );
+
+          const alt1 = p1.alt ?? 1500;
+          const alt2 = p2.alt ?? 1500;
+          const alt = Math.round(alt1 + (alt2 - alt1) * t);
+
+          if (dense.length > 0) {
+            const prev = dense[dense.length - 1];
+            cumulativeDist += haversineKm(prev.lat, prev.lng, lat, lng);
+          }
+
+          dense.push({
+            lat,
+            lng,
+            alt,
+            distKm: cumulativeDist,
+            name: p1.name || 'En ruta',
+            road: p1.road || 'Carretera',
+            bubble: step === 0 ? p1.bubble : null,
+            waypointIdx: i
+          });
+        }
+      }
+
+      const last = waypoints[waypoints.length - 1];
+      const prev = dense[dense.length - 1];
+      cumulativeDist += haversineKm(prev.lat, prev.lng, last.lat, last.lng);
+      dense.push({
+        lat: last.lat,
+        lng: last.lng,
+        alt: last.alt ?? 1500,
+        distKm: cumulativeDist,
+        name: last.name || 'Destino Final',
+        road: last.road || 'Llegada',
+        bubble: last.bubble || null,
+        waypointIdx: waypoints.length - 1
+      });
+
+      for (let i = 0; i < dense.length; i++) {
+        if (i < dense.length - 1) {
+          dense[i].bearing = calculateBearing(dense[i].lat, dense[i].lng, dense[i + 1].lat, dense[i + 1].lng);
+        } else {
+          dense[i].bearing = dense[i - 1].bearing;
+        }
+        // Calcular ángulo de inclinación en curva (lean angle)
+        if (i > 0 && i < dense.length - 1) {
+          let diff = dense[i + 1].bearing - dense[i - 1].bearing;
+          if (diff > 180) diff -= 360;
+          if (diff < -180) diff += 360;
+          dense[i].lean = Math.max(-18, Math.min(18, diff * 1.4));
+        } else {
+          dense[i].lean = 0;
+        }
+      }
+
+      return dense;
+    }
+
+    /**
+     * ============================================================================
+     * NOTIFICACIONES TOAST Y BOCADILLOS DE CÓMIC
+     * ============================================================================
+     */
+    function showToast(message, type = 'info') {
+      if (state.obsCleanMode) return;
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-400 text-[#18181B]' : type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#FACC15] text-[#18181B]';
+      toast.className = `${bg} border-2 border-[#18181B] shadow-[4px_4px_0px_#18181B] px-4 py-2 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition-all duration-300 opacity-0 translate-y-[-8px]`;
+      toast.innerHTML = `<span>⚡</span><span>${message}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => toast.classList.remove('opacity-0', 'translate-y-[-8px]'));
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-8px]');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function triggerComicBubble(text) {
+      if (!text) return;
+      state.activeBubbleText = text;
+      const card = document.getElementById('moto-callout-card');
+      if (card) {
+        card.classList.remove('callout-pop-anim');
+        void card.offsetWidth;
+        card.classList.add('callout-pop-anim');
+      }
+    }
+
+    /**
+     * ============================================================================
+     * INICIALIZACIÓN DEL MAPA LEAFLET 100% GRATUITO (SIN CARTO NI API KEYS)
+     * ============================================================================
+     */
+    function initMap() {
+      state.map = L.map('map', {
+        zoomControl: false,
+        attributionControl: true
+      }).setView([4.15, -73.85], 10);
+
+      L.control.zoom({ position: 'topleft' }).addTo(state.map);
+      setTimeout(() => {
+        const zoomEl = document.querySelector('.leaflet-top.leaflet-left');
+        if (zoomEl) zoomEl.style.top = '68px';
+      }, 100);
+
+      // 3 Estilos visuales gratuitos sin API Key ni bloqueo 403 de Referer (Esri / ArcGIS)
+      state.tileLayers = {
+        day: {
+          name: 'Cartoon Día',
+          layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; OpenStreetMap contributors',
+            maxZoom: 19,
+            className: 'tile-cartoon-day'
+          })
+        },
+        sunset: {
+          name: 'Cartoon Relieve',
+          layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; World Topo',
+            maxZoom: 19,
+            className: 'tile-cartoon-sunset'
+          })
+        },
+        satellite: {
+          name: 'Satélite Cómic',
+          layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri',
+            maxZoom: 18,
+            className: 'tile-cartoon-satellite'
+          })
+        }
+      };
+
+      state.tileLayers.day.layer.addTo(state.map);
+
+      // Sincronizar posición del cartel lateral al hacer zoom o mover el mapa manualmente
+      state.map.on('move zoom', () => {
+        if (state.motoMarker) {
+          const ll = state.motoMarker.getLatLng();
+          positionSideCallout(ll.lat, ll.lng);
+        }
+      });
+
+      // Clic en el mapa para Planificador de Rutas Futuras
+      state.map.on('click', (e) => {
+        if (!state.plannerActive) return;
+        addPlannerWaypoint(e.latlng.lat, e.latlng.lng);
+      });
+
+      state.map.on('dragstart', () => {
+        if (state.followMoto && !state.plannerActive) {
+          setFollowMoto(false);
+        }
+      });
+
+      const stage = document.getElementById('cinema-stage');
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+          if (state.map) state.map.invalidateSize();
+        });
+        ro.observe(stage);
+      }
+    }
+
+    /**
+     * ============================================================================
+     * MARCADOR CENITAL CARTOON KTM DUKE 200 NG (EXTRA GRANDE 124x124PX CON HALO)
+     * ============================================================================
+     */
+    function createMotoDivIcon() {
+      const motoSvg = `
+        <div id="moto-rotator" class="moto-marker-wrapper w-[124px] h-[124px] flex items-center justify-center">
+          <svg width="124" height="124" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Halo circular tipo sticker cómic para destacar sobre cualquier mapa -->
+            <circle cx="42" cy="44" r="35" fill="rgba(250, 204, 21, 0.22)" stroke="#18181B" stroke-width="2" stroke-dasharray="5,4"/>
+            <circle cx="42" cy="44" r="29" fill="rgba(255, 107, 0, 0.16)"/>
+
+            <!-- Sombra cenital bajo la moto -->
+            <ellipse cx="42" cy="46" rx="17" ry="29" fill="rgba(0,0,0,0.38)"/>
+
+            <!-- Partículas de humo de escape animadas -->
+            <circle cx="39" cy="72" r="5" fill="#FFFFFF" stroke="#18181B" stroke-width="1.8" class="smoke-puff-1"/>
+            <circle cx="45" cy="73" r="4.2" fill="#E5E7EB" stroke="#18181B" stroke-width="1.8" class="smoke-puff-2"/>
+
+            <g class="moto-bounce-body">
+              <!-- Haz de luz delantero estilo cómic -->
+              <path d="M27 19 L42 1 L57 19 Z" fill="url(#comicBeam)" opacity="0.95"/>
+              <defs>
+                <linearGradient id="comicBeam" x1="42" y1="19" x2="42" y2="1" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FACC15" stop-opacity="0.95"/>
+                  <stop offset="100%" stop-color="#FACC15" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Llanta delantera ancha -->
+              <rect x="36.5" y="10" width="11" height="18" rx="5.5" fill="#18181B" stroke="#000000" stroke-width="2.2"/>
+              <line x1="42" y1="12" x2="42" y2="25" stroke="#71717A" stroke-width="1.6" stroke-dasharray="2,2"/>
+
+              <!-- Guardabarros delantero Naranja KTM -->
+              <path d="M35 18.5 C35 13, 49 13, 49 18.5 L47.5 26.5 L36.5 26.5 Z" fill="#FF6B00" stroke="#18181B" stroke-width="2.6"/>
+
+              <!-- Manillar ancho Naked Duke con espejos y puños -->
+              <rect x="17" y="27" width="50" height="6" rx="3" fill="#27272A" stroke="#18181B" stroke-width="2.6"/>
+              <!-- Espejos retrovisores -->
+              <ellipse cx="20" cy="24" rx="5" ry="2.8" transform="rotate(-18 20 24)" fill="#38BDF8" stroke="#18181B" stroke-width="2"/>
+              <ellipse cx="64" cy="24" rx="5" ry="2.8" transform="rotate(18 64 24)" fill="#38BDF8" stroke="#18181B" stroke-width="2"/>
+              <!-- Contrapesos amarillos -->
+              <circle cx="17" cy="30" r="3.8" fill="#FACC15" stroke="#18181B" stroke-width="2"/>
+              <circle cx="67" cy="30" r="3.8" fill="#FACC15" stroke="#18181B" stroke-width="2"/>
+
+              <!-- Chasis multitubular Trellis Naranja asomando -->
+              <path d="M28 33 L24 43 L29 50 M56 33 L60 43 L55 50" stroke="#FF6B00" stroke-width="4" stroke-linecap="round"/>
+
+              <!-- Tanque agresivo Duke 200 NG -->
+              <path d="M28 31.5 C24.5 37.5, 26.5 49, 32.5 53 L51.5 53 C57.5 49, 59.5 37.5, 56 31.5 C49.5 27.5, 34.5 27.5, 28 31.5 Z" fill="#FF6B00" stroke="#18181B" stroke-width="3"/>
+              <!-- Franja central negra del tanque -->
+              <path d="M36.5 31.5 L47.5 31.5 L46 49 L38 49 Z" fill="#18181B"/>
+
+              <!-- Hombros y chaqueta del piloto -->
+              <rect x="26" y="39.5" width="32" height="14" rx="7" fill="#27272A" stroke="#18181B" stroke-width="2.6"/>
+              <path d="M27 43 L34 43 M50 43 L57 43" stroke="#FF6B00" stroke-width="2.8" stroke-linecap="round"/>
+
+              <!-- Casco del piloto cenital con visor iridio -->
+              <circle cx="42" cy="45.5" r="10.8" fill="#FFFFFF" stroke="#18181B" stroke-width="3"/>
+              <!-- Visor oscuro / naranja -->
+              <path d="M34 41.5 C38 37.5, 46 37.5, 50 41.5 C48 44.2, 36 44.2, 34 41.5 Z" fill="#18181B"/>
+              <path d="M36 40.3 C39.5 38.2, 44.5 38.2, 48 40.3" stroke="#FF6B00" stroke-width="2.4" stroke-linecap="round"/>
+
+              <!-- Colín trasero afilado Duke -->
+              <path d="M33 53.5 L51 53.5 L47 68.5 L37 68.5 Z" fill="#27272A" stroke="#18181B" stroke-width="2.6"/>
+              <!-- Llanta trasera ancha -->
+              <rect x="35" y="63.5" width="14" height="17" rx="6" fill="#18181B" stroke="#000000" stroke-width="2.2"/>
+              <!-- Luz Stop LED roja -->
+              <rect x="37.5" y="67.5" width="9" height="3.5" rx="1.4" fill="#EF4444" stroke="#18181B" stroke-width="1.2"/>
+            </g>
+          </svg>
+        </div>
+      `;
+
+      return L.divIcon({
+        html: motoSvg,
+        className: 'custom-moto-div-icon',
+        iconSize: [124, 124],
+        iconAnchor: [62, 62]
+      });
+    }
+
+    /**
+     * ============================================================================
+     * POSICIONAMIENTO DINÁMICO DEL CARTEL LATERAL JUNTO A LA MOTO
+     * ============================================================================
+     */
+    function positionSideCallout(lat, lng) {
+      const calloutEl = document.getElementById('moto-side-callout');
+      const stageEl = document.getElementById('cinema-stage');
+      if (!calloutEl || !state.map || !stageEl) return;
+
+      if (state.plannerActive) {
+        calloutEl.classList.add('hidden');
+        return;
+      }
+
+      calloutEl.classList.remove('hidden');
+
+      const pt = state.map.latLngToContainerPoint([lat, lng]);
+      const stageW = stageEl.clientWidth;
+      const stageH = stageEl.clientHeight;
+      const cardW = calloutEl.offsetWidth || 210;
+      const cardH = calloutEl.offsetHeight || 68;
+
+      const tailLeft = document.getElementById('callout-tail-left');
+      const tailRight = document.getElementById('callout-tail-right');
+
+      // Margen de 72px desde el centro de la moto extra grande (124px)
+      const offsetFromBike = 72;
+      const wouldOverflowRight = (pt.x + offsetFromBike + cardW + 16) > stageW;
+
+      let targetX;
+      if (wouldOverflowRight) {
+        // Ubicar cartel a la IZQUIERDA de la moto y apuntar cola hacia la derecha
+        targetX = Math.max(12, pt.x - offsetFromBike - cardW);
+        tailLeft.classList.add('hidden');
+        tailRight.classList.remove('hidden');
+      } else {
+        // Ubicar cartel a la DERECHA de la moto y apuntar cola hacia la izquierda
+        targetX = Math.min(stageW - cardW - 12, pt.x + offsetFromBike);
+        tailLeft.classList.remove('hidden');
+        tailRight.classList.add('hidden');
+      }
+
+      // Centrar verticalmente respecto a la moto sin salirse por arriba o abajo
+      const targetY = Math.max(14, Math.min(stageH - cardH - 14, pt.y - (cardH / 2)));
+
+      calloutEl.style.transform = `translate3d(${Math.round(targetX)}px, ${Math.round(targetY)}px, 0)`;
+    }
+
+    /**
+     * ============================================================================
+     * RENDERIZADO DE RUTA ESTILO CÓMIC (DOBLE BORDE NEGRO, NARANJA Y AMARILLO)
+     * ============================================================================
+     */
+    function loadRoute(routeObj) {
+      state.currentRoute = routeObj;
+      document.getElementById('header-route-title').textContent = routeObj.title;
+      document.getElementById('yt-pill-title').textContent = `TROCOYT · ${routeObj.title.toUpperCase()}`;
+      document.getElementById('countdown-route-title').textContent = routeObj.title;
+
+      // Limpiar capas anteriores
+      [state.guideOutline, state.guidePolyline, state.activeTrailOutline, state.activeTrailFill, state.activeTrailDash, state.motoMarker].forEach(layer => {
+        if (layer) state.map.removeLayer(layer);
+      });
+      state.checkpointMarkers.forEach(m => state.map.removeLayer(m));
+      state.checkpointMarkers = [];
+      state.lastCalloutMilestone = '';
+      state.activeBubbleText = routeObj.waypoints[0]?.bubble || `🏍️ ¡Salida desde ${routeObj.waypoints[0]?.name || 'Inicio'}!`;
+
+      const waypoints = routeObj.waypoints;
+      const subdivisions = waypoints.length > 250 ? 3 : waypoints.length > 80 ? 6 : 14;
+      state.densePoints = interpolateRoute(waypoints, subdivisions);
+      state.totalDistanceKm = state.densePoints[state.densePoints.length - 1].distKm;
+
+      document.getElementById('hud-total-distance').textContent = state.totalDistanceKm.toFixed(1);
+
+      const allLatLngs = state.densePoints.map(p => [p.lat, p.lng]);
+
+      // 1. Ruta guía futura (gris punteada con contorno suave)
+      state.guideOutline = L.polyline(allLatLngs, {
+        color: '#18181B',
+        weight: 6,
+        opacity: 0.22,
+        lineCap: 'round'
+      }).addTo(state.map);
+
+      state.guidePolyline = L.polyline(allLatLngs, {
+        color: '#FFFFFF',
+        weight: 3,
+        opacity: 0.65,
+        dashArray: '8, 10',
+        lineCap: 'round'
+      }).addTo(state.map);
+
+      // 2. Trazo recorrido estilo cómic:
+      // Capa A: Contorno grueso tinta negra (#18181B)
+      state.activeTrailOutline = L.polyline([], {
+        color: '#18181B',
+        weight: 12,
+        opacity: 1,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(state.map);
+
+      // Capa B: Relleno Naranja KTM vibrante (#FF6B00)
+      state.activeTrailFill = L.polyline([], {
+        color: '#FF6B00',
+        weight: 7,
+        opacity: 1,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(state.map);
+
+      // Capa C: Línea central punteada Amarilla (#FACC15)
+      state.activeTrailDash = L.polyline([], {
+        color: '#FACC15',
+        weight: 2.5,
+        opacity: 0.95,
+        dashArray: '7, 9',
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(state.map);
+
+      // Marcadores de Checkpoints estilo cómic
+      const checkpointsListEl = document.getElementById('checkpoints-list');
+      checkpointsListEl.innerHTML = '';
+
+      const checkpoints = waypoints.filter(w => w.checkpoint);
+      checkpoints.forEach((cp, idx) => {
+        const isFirst = idx === 0;
+        const isLast = idx === checkpoints.length - 1;
+        const dotColor = isFirst ? '#10B981' : isLast ? '#EF4444' : '#FACC15';
+
+        const cpIcon = L.divIcon({
+          html: `
+            <div class="relative flex items-center justify-center w-6 h-6">
+              ${(isFirst || isLast) ? `<span class="checkpoint-pulse absolute inset-0 rounded-full" style="background:${dotColor};"></span>` : ''}
+              <span class="relative w-3.5 h-3.5 rounded-full border-[2.5px] border-[#18181B] shadow-md" style="background:${dotColor};"></span>
+            </div>
+          `,
+          className: 'checkpoint-icon',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        const marker = L.marker([cp.lat, cp.lng], { icon: cpIcon }).addTo(state.map);
+        marker.bindTooltip(`
+          <div class="font-sans text-xs font-bold">
+            <span class="text-[#18181B]">${cp.name}</span>
+          </div>
+        `, { direction: 'top', className: 'bg-[#FACC15] text-[#18181B] border-2 border-[#18181B] rounded-xl px-2.5 py-1 shadow-[3px_3px_0px_#18181B]' });
+
+        state.checkpointMarkers.push(marker);
+
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left px-2 py-1 rounded-lg hover:bg-white/10 transition flex items-center justify-between text-[11px] group';
+        btn.innerHTML = `
+          <div class="flex items-center gap-1.5 truncate">
+            <span class="w-2 h-2 rounded-full border border-black shrink-0" style="background:${dotColor}"></span>
+            <span class="text-gray-200 group-hover:text-white truncate font-semibold">${cp.name}</span>
+          </div>
+          <span class="font-mono text-[9px] text-gray-400 group-hover:text-[#FACC15] shrink-0 ml-1">${cp.alt ?? 1500}m</span>
+        `;
+        btn.addEventListener('click', () => {
+          let bestIdx = 0;
+          let minD = Infinity;
+          state.densePoints.forEach((dp, i) => {
+            const d = Math.hypot(dp.lat - cp.lat, dp.lng - cp.lng);
+            if (d < minD) { minD = d; bestIdx = i; }
+          });
+          state.progress = bestIdx / (state.densePoints.length - 1);
+          updateSimulationFrame(true);
+        });
+        checkpointsListEl.appendChild(btn);
+      });
+
+      const startPt = state.densePoints[0];
+      state.motoMarker = L.marker([startPt.lat, startPt.lng], {
+        icon: createMotoDivIcon(),
+        zIndexOffset: 1000
+      }).addTo(state.map);
+
+      buildElevationProfileSVG();
+      state.progress = 0;
+      fitEntireRoute();
+      updateSimulationFrame(true);
+    }
+
+    function buildElevationProfileSVG() {
+      const pts = state.densePoints;
+      if (!pts.length) return;
+
+      const width = 260;
+      const height = 60;
+      const paddingY = 6;
+
+      let minAlt = Infinity;
+      let maxAlt = -Infinity;
+      pts.forEach(p => {
+        if (p.alt < minAlt) minAlt = p.alt;
+        if (p.alt > maxAlt) maxAlt = p.alt;
+      });
+      if (maxAlt === minAlt) maxAlt = minAlt + 100;
+
+      document.getElementById('elev-max-label').textContent = `MAX ${Math.round(maxAlt).toLocaleString('es-CO')}m`;
+
+      const step = Math.max(1, Math.floor(pts.length / 120));
+      let lineD = '';
+      for (let i = 0; i < pts.length; i += step) {
+        const p = pts[i];
+        const x = (i / (pts.length - 1)) * width;
+        const normY = (p.alt - minAlt) / (maxAlt - minAlt);
+        const y = height - paddingY - normY * (height - paddingY * 2);
+        lineD += (i === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`);
+      }
+      const lastP = pts[pts.length - 1];
+      const lastNormY = (lastP.alt - minAlt) / (maxAlt - minAlt);
+      const lastY = height - paddingY - lastNormY * (height - paddingY * 2);
+      lineD += ` L ${width} ${lastY.toFixed(1)}`;
+
+      const areaD = `${lineD} L ${width} ${height} L 0 ${height} Z`;
+
+      document.getElementById('elev-bg-line').setAttribute('d', lineD);
+      document.getElementById('elev-bg-area').setAttribute('d', areaD);
+      document.getElementById('elev-active-line').setAttribute('d', lineD);
+      document.getElementById('elev-active-area').setAttribute('d', areaD);
+
+      state.elevMeta = { minAlt, maxAlt, width, height, paddingY };
+    }
+
+    function updateElevationCursor(progress, currentAlt) {
+      if (!state.elevMeta) return;
+      const { minAlt, maxAlt, width, height, paddingY } = state.elevMeta;
+      const x = progress * width;
+      const normY = Math.max(0, Math.min(1, (currentAlt - minAlt) / (maxAlt - minAlt)));
+      const y = height - paddingY - normY * (height - paddingY * 2);
+
+      document.getElementById('elev-clip-rect').setAttribute('width', x.toFixed(1));
+      document.getElementById('elev-cursor-line').setAttribute('x1', x.toFixed(1));
+      document.getElementById('elev-cursor-line').setAttribute('x2', x.toFixed(1));
+      document.getElementById('elev-cursor-dot').setAttribute('cx', x.toFixed(1));
+      document.getElementById('elev-cursor-dot').setAttribute('cy', y.toFixed(1));
+    }
+
+    /**
+     * ============================================================================
+     * ACTUALIZACIÓN DE FOTOGRAMAS DE ANIMACIÓN
+     * ============================================================================
+     */
+    function updateSimulationFrame(forcePan = false) {
+      const pts = state.densePoints;
+      if (!pts.length) return;
+
+      const maxIdx = pts.length - 1;
+      const exactFloatIdx = state.progress * maxIdx;
+      const idx = Math.min(maxIdx, Math.floor(exactFloatIdx));
+      const nextIdx = Math.min(maxIdx, idx + 1);
+      const subT = exactFloatIdx - idx;
+
+      const p1 = pts[idx];
+      const p2 = pts[nextIdx];
+
+      const lat = p1.lat + (p2.lat - p1.lat) * subT;
+      const lng = p1.lng + (p2.lng - p1.lng) * subT;
+      const alt = Math.round(p1.alt + (p2.alt - p1.alt) * subT);
+      const distKm = p1.distKm + (p2.distKm - p1.distKm) * subT;
+      const bearing = p1.bearing;
+      const lean = p1.lean || 0;
+
+      // Posicionar y rotar moto cartoon con inclinación en curvas
+      state.motoMarker.setLatLng([lat, lng]);
+      const rotator = document.getElementById('moto-rotator');
+      if (rotator) {
+        rotator.style.transform = `rotate(${bearing.toFixed(1)}deg) skewX(${(lean * 0.35).toFixed(1)}deg)`;
+      }
+
+      // Actualizar texto y pulso del cartel lateral permanente
+      if (p1.bubble) {
+        state.activeBubbleText = p1.bubble;
+      } else if (p1.name !== state.lastCalloutMilestone) {
+        state.activeBubbleText = `🛣️ ${p1.road}`;
+      }
+
+      if (p1.name !== state.lastCalloutMilestone) {
+        state.lastCalloutMilestone = p1.name;
+        triggerComicBubble(state.activeBubbleText);
+      }
+
+      const pct = Math.round(state.progress * 100);
+      document.getElementById('callout-badge').textContent = pct >= 100 ? 'META' : `${pct}% RUTA`;
+      document.getElementById('callout-telemetry').textContent = `${distKm.toFixed(1)}km · ${alt.toLocaleString('es-CO')}m`;
+      document.getElementById('callout-title').textContent = p1.name;
+      document.getElementById('callout-subtext').textContent = state.activeBubbleText;
+
+      // Dibujar triple trazo cómic recorrido
+      const trailCoords = pts.slice(0, idx + 1).map(p => [p.lat, p.lng]);
+      trailCoords.push([lat, lng]);
+      state.activeTrailOutline.setLatLngs(trailCoords);
+      state.activeTrailFill.setLatLngs(trailCoords);
+      state.activeTrailDash.setLatLngs(trailCoords);
+
+      // Actualizar HUDs
+      document.getElementById('hud-percent').textContent = `${pct}%`;
+      document.getElementById('hud-segment').textContent = p1.name;
+      document.getElementById('hud-road').textContent = p1.road;
+      document.getElementById('hud-distance').textContent = distKm.toFixed(1);
+      document.getElementById('hud-altitude').textContent = alt.toLocaleString('es-CO');
+
+      document.getElementById('yt-pill-segment').textContent = p1.name;
+      document.getElementById('yt-pill-road').textContent = p1.road.split('·')[0].trim();
+      document.getElementById('yt-pill-dist').textContent = distKm.toFixed(1);
+      document.getElementById('yt-pill-alt').textContent = alt.toLocaleString('es-CO');
+      document.getElementById('yt-pill-pct').textContent = `${pct}%`;
+
+      document.getElementById('timeline-slider').value = Math.round(state.progress * 1000);
+      document.getElementById('slider-fill').style.width = `${(state.progress * 100).toFixed(2)}%`;
+      document.getElementById('time-elapsed').textContent = `${pct}%`;
+
+      updateElevationCursor(state.progress, alt);
+
+      if (state.followMoto) {
+        if (forcePan) {
+          state.map.setView([lat, lng], Math.max(state.map.getZoom(), 12), { animate: true });
+        } else {
+          state.map.panTo([lat, lng], { animate: false });
+        }
+      }
+
+      // Posicionar cartel cómic al lado de la moto en coordenadas de pantalla
+      positionSideCallout(lat, lng);
+    }
+
+    function animationLoop(timestamp) {
+      if (!state.isPlaying) {
+        state.lastFrameTime = null;
+        return;
+      }
+
+      if (state.lastFrameTime !== null) {
+        const dtSec = (timestamp - state.lastFrameTime) / 1000;
+        const deltaProgress = (dtSec * state.speedMultiplier) / state.baseDurationSec;
+        state.progress += deltaProgress;
+
+        if (state.progress >= 1) {
+          state.progress = 1;
+          updateSimulationFrame();
+          togglePlayPause(false);
+          if (state.isRecordingWebm) stopWebmRecording();
+          showToast('¡Ruta completada!', 'success');
+          return;
+        }
+
+        updateSimulationFrame();
+      }
+
+      state.lastFrameTime = timestamp;
+      requestAnimationFrame(animationLoop);
+    }
+
+    /**
+     * ============================================================================
+     * REPRODUCCIÓN, MODO OBS (H) E INTRO 3-2-1 (R)
+     * ============================================================================
+     */
+    function togglePlayPause(forceState = null) {
+      state.isPlaying = forceState !== null ? forceState : !state.isPlaying;
+      const iconPlay = document.getElementById('icon-play');
+      const iconPause = document.getElementById('icon-pause');
+      const label = document.getElementById('play-label');
+
+      if (state.isPlaying) {
+        if (state.progress >= 1) {
+          state.progress = 0;
+          state.lastCalloutMilestone = '';
+        }
+        if (state.followMoto && state.map.getZoom() < 11) {
+          const p = state.densePoints[Math.floor(state.progress * (state.densePoints.length - 1))];
+          state.map.setView([p.lat, p.lng], 12, { animate: true });
+        }
+        iconPlay.classList.add('hidden');
+        iconPause.classList.remove('hidden');
+        label.textContent = 'Pausar';
+        state.lastFrameTime = performance.now();
+        requestAnimationFrame(animationLoop);
+      } else {
+        iconPlay.classList.remove('hidden');
+        iconPause.classList.add('hidden');
+        label.textContent = 'Reproducir';
+        state.lastFrameTime = null;
+      }
+    }
+
+    function setObsCleanMode(enabled) {
+      state.obsCleanMode = enabled;
+      document.body.classList.toggle('obs-clean-mode', enabled);
+    }
+
+    function startCountdownTake() {
+      if (state.countdownTimer) clearInterval(state.countdownTimer);
+      togglePlayPause(false);
+      state.progress = 0;
+      state.lastCalloutMilestone = '';
+      setFollowMoto(true);
+      updateSimulationFrame(true);
+      setObsCleanMode(true);
+
+      const overlay = document.getElementById('countdown-overlay');
+      const numEl = document.getElementById('countdown-number');
+      let count = 3;
+      numEl.textContent = count;
+      overlay.classList.remove('hidden');
+
+      state.countdownTimer = setInterval(() => {
+        count -= 1;
+        if (count > 0) {
+          numEl.textContent = count;
+        } else {
+          clearInterval(state.countdownTimer);
+          state.countdownTimer = null;
+          overlay.classList.add('hidden');
+          togglePlayPause(true);
+        }
+      }, 1000);
+    }
+
+    function setFollowMoto(enabled) {
+      state.followMoto = enabled;
+      const btn = document.getElementById('btn-follow-moto');
+      const label = document.getElementById('follow-label');
+      if (enabled) {
+        btn.className = 'comic-btn bg-[#FF6B00] text-[#18181B] px-3 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5';
+        label.textContent = '🎥 Seguimiento Cercano';
+        updateSimulationFrame(true);
+      } else {
+        btn.className = 'comic-btn bg-white text-[#18181B] px-3 py-1.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5';
+        label.textContent = '🖐️ Cámara Libre';
+      }
+    }
+
+    function fitEntireRoute() {
+      if (!state.guidePolyline) return;
+      setFollowMoto(false);
+      state.map.fitBounds(state.guidePolyline.getBounds(), { padding: [55, 55], animate: true });
+    }
+
+    /**
+     * ============================================================================
+     * PARSER DE GOOGLE MAPS TIMELINE.JSON Y ARCHIVOS GPX
+     * ============================================================================
+     */
+    function parseTimelineOrGpxFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const content = e.target.result;
+          const fileName = file.name.toLowerCase();
+          const detectedRoutes = [];
+
+          if (fileName.endsWith('.gpx')) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(content, 'text/xml');
+            const trkpts = xmlDoc.querySelectorAll('trkpt, rtept');
+            const pts = [];
+            trkpts.forEach((pt, i) => {
+              const lat = parseFloat(pt.getAttribute('lat'));
+              const lng = parseFloat(pt.getAttribute('lon'));
+              const ele = pt.querySelector('ele');
+              const alt = ele ? Math.round(parseFloat(ele.textContent)) : 1500;
+              if (!isNaN(lat) && !isNaN(lng)) {
+                pts.push({
+                  lat, lng, alt,
+                  name: i === 0 ? 'Salida GPX' : i === trkpts.length - 1 ? 'Llegada GPX' : `Tramo #${i + 1}`,
+                  road: file.name,
+                  checkpoint: i === 0 || i === trkpts.length - 1
+                });
+              }
+            });
+            if (pts.length >= 2) {
+              detectedRoutes.push({
+                id: 'gpx-' + Date.now(),
+                title: `Archivo GPX: ${file.name}`,
+                badge: `GPX · ${pts.length} PTS`,
+                subtitle: 'Ruta importada desde archivo GPX',
+                waypoints: pts
+              });
+            }
+          } else {
+            const data = JSON.parse(content);
+            const routesByDate = {};
+
+            // Formato moderno Google Maps Timeline (semanticSegments)
+            if (Array.isArray(data.semanticSegments)) {
+              data.semanticSegments.forEach(seg => {
+                const dateKey = (seg.startTime || 'Sin fecha').slice(0, 10);
+                if (!routesByDate[dateKey]) routesByDate[dateKey] = [];
+
+                if (Array.isArray(seg.timelinePath)) {
+                  seg.timelinePath.forEach(tp => {
+                    if (tp.point) {
+                      const clean = tp.point.replace(/°/g, '').split(',');
+                      const lat = parseFloat(clean[0]);
+                      const lng = parseFloat(clean[1]);
+                      if (!isNaN(lat) && !isNaN(lng)) {
+                        routesByDate[dateKey].push({
+                          lat, lng, alt: 1600,
+                          name: `Registro ${dateKey}`,
+                          road: 'Google Maps Timeline'
+                        });
+                      }
+                    }
+                  });
+                }
+
+                if (seg.activity) {
+                  const startRaw = seg.activity.start?.latLng;
+                  const endRaw = seg.activity.end?.latLng;
+                  [startRaw, endRaw].forEach(raw => {
+                    if (raw) {
+                      const clean = raw.replace(/°/g, '').split(',');
+                      const lat = parseFloat(clean[0]);
+                      const lng = parseFloat(clean[1]);
+                      if (!isNaN(lat) && !isNaN(lng)) {
+                        routesByDate[dateKey].push({
+                          lat, lng, alt: 1600,
+                          name: `Trayecto ${dateKey}`,
+                          road: seg.activity.topCandidate?.type || 'Desplazamiento',
+                          checkpoint: true
+                        });
+                      }
+                    }
+                  });
+                }
+
+                if (seg.visit?.topCandidate?.placeLocation?.latLng) {
+                  const clean = seg.visit.topCandidate.placeLocation.latLng.replace(/°/g, '').split(',');
+                  const lat = parseFloat(clean[0]);
+                  const lng = parseFloat(clean[1]);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    routesByDate[dateKey].push({
+                      lat, lng, alt: 1600,
+                      name: `Parada (${dateKey})`,
+                      road: 'Lugar visitado',
+                      checkpoint: true
+                    });
+                  }
+                }
+              });
+            }
+            // Formato clásico Google Takeout (timelineObjects)
+            else if (Array.isArray(data.timelineObjects)) {
+              data.timelineObjects.forEach(obj => {
+                const seg = obj.activitySegment;
+                const visit = obj.placeVisit;
+                const ts = seg?.duration?.startTimestamp || visit?.duration?.startTimestamp || 'Historial';
+                const dateKey = ts.slice(0, 10);
+                if (!routesByDate[dateKey]) routesByDate[dateKey] = [];
+
+                const path = seg?.waypointPath?.waypoints || seg?.simplifiedRawPath?.points;
+                if (Array.isArray(path)) {
+                  path.forEach(p => {
+                    const lat = (p.latE7 ?? p.latitudeE7) / 1e7;
+                    const lng = (p.lngE7 ?? p.longitudeE7) / 1e7;
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                      routesByDate[dateKey].push({
+                        lat, lng, alt: 1600,
+                        name: `Ruta ${dateKey}`,
+                        road: 'Google Timeline'
+                      });
+                    }
+                  });
+                }
+                if (visit?.location?.latitudeE7) {
+                  routesByDate[dateKey].push({
+                    lat: visit.location.latitudeE7 / 1e7,
+                    lng: visit.location.longitudeE7 / 1e7,
+                    alt: 1600,
+                    name: visit.location.name || `Parada ${dateKey}`,
+                    road: visit.location.address || 'Lugar visitado',
+                    checkpoint: true
+                  });
+                }
+              });
+            }
+
+            // Convertir días con al menos 2 puntos en rutas seleccionables
+            Object.keys(routesByDate).sort().reverse().forEach(dateKey => {
+              const pts = routesByDate[dateKey];
+              if (pts.length >= 2) {
+                pts[0].checkpoint = true;
+                pts[0].bubble = `🏍️ ¡Salida ${dateKey}!`;
+                pts[pts.length - 1].checkpoint = true;
+                pts[pts.length - 1].bubble = `🏁 ¡Fin del recorrido!`;
+
+                let dist = 0;
+                for (let i = 1; i < pts.length; i++) {
+                  dist += haversineKm(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng);
+                }
+
+                detectedRoutes.push({
+                  id: `tl-${dateKey}`,
+                  title: `Timeline Google Maps · ${dateKey}`,
+                  badge: `${dist.toFixed(1)} KM · ${pts.length} PTS`,
+                  subtitle: `Recorrido extraído de tu cronología (${dateKey})`,
+                  waypoints: pts
+                });
+              }
+            });
+          }
+
+          if (detectedRoutes.length > 0) {
+            state.importedTimelineRoutes = detectedRoutes;
+            renderRoutesModalLists();
+            showToast(`¡${detectedRoutes.length} recorrido(s) cargados de tu Timeline!`, 'success');
+          } else {
+            showToast('No se encontraron trayectos con coordenadas en ese archivo.', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Error al leer el archivo Timeline.json / GPX.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function renderRoutesModalLists() {
+      const importedSection = document.getElementById('imported-timeline-section');
+      const importedList = document.getElementById('imported-routes-list');
+      const savedList = document.getElementById('saved-routes-list');
+
+      if (state.importedTimelineRoutes.length > 0) {
+        importedSection.classList.remove('hidden');
+        importedList.innerHTML = '';
+        state.importedTimelineRoutes.forEach(r => {
+          importedList.appendChild(createRouteCardElement(r, true));
+        });
+      }
+
+      savedList.innerHTML = '';
+      state.routes.forEach(r => {
+        savedList.appendChild(createRouteCardElement(r, false));
+      });
+    }
+
+    function createRouteCardElement(routeObj, isTimeline) {
+      const card = document.createElement('button');
+      card.className = 'text-left bg-black/50 hover:bg-black/80 border-2 border-[#18181B] hover:border-[#FF6B00] rounded-2xl p-3 transition flex flex-col justify-between gap-1.5';
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2 w-full">
+          <span class="text-[10px] font-mono font-black px-2 py-0.5 rounded ${isTimeline ? 'bg-emerald-400 text-[#18181B]' : 'bg-[#FACC15] text-[#18181B]'} border border-[#18181B]">${routeObj.badge}</span>
+          <span class="text-xs font-extrabold text-[#FF6B00]">Cargar ➔</span>
+        </div>
+        <div class="text-sm font-extrabold text-white leading-snug">${routeObj.title}</div>
+        <div class="text-[11px] text-gray-400 truncate w-full">${routeObj.subtitle}</div>
+      `;
+      card.addEventListener('click', () => {
+        togglePlayPause(false);
+        loadRoute(routeObj);
+        document.getElementById('routes-modal').classList.add('hidden');
+        showToast(`Ruta cargada: ${routeObj.title}`, 'success');
+      });
+      return card;
+    }
+
+    /**
+     * ============================================================================
+     * PLANIFICADOR DE RUTAS FUTURAS CON CARRETERA REAL (OSRM GRATUITO)
+     * ============================================================================
+     */
+    function togglePlannerMode(force = null) {
+      state.plannerActive = force !== null ? force : !state.plannerActive;
+      const stage = document.getElementById('cinema-stage');
+      const banner = document.getElementById('planner-banner');
+
+      if (state.plannerActive) {
+        togglePlayPause(false);
+        setFollowMoto(false);
+        stage.classList.add('planner-active');
+        banner.classList.remove('hidden');
+        document.getElementById('moto-side-callout').classList.add('hidden');
+        clearPlannerPins();
+        showToast('Haz clic en el mapa para marcar tu punto de salida');
+      } else {
+        stage.classList.remove('planner-active');
+        banner.classList.add('hidden');
+        clearPlannerPins();
+        updateSimulationFrame(false);
+      }
+    }
+
+    function clearPlannerPins() {
+      state.plannerPins = [];
+      state.plannerComputedWaypoints = null;
+      state.plannerPinMarkers.forEach(m => state.map.removeLayer(m));
+      state.plannerPinMarkers = [];
+      if (state.plannerPreviewLine) state.map.removeLayer(state.plannerPreviewLine);
+      if (state.plannerPreviewOutline) state.map.removeLayer(state.plannerPreviewOutline);
+    }
+
+    async function addPlannerWaypoint(lat, lng) {
+      const idx = state.plannerPins.length;
+      state.plannerPins.push({ lat, lng });
+
+      const label = idx === 0 ? 'SALIDA' : `P${idx}`;
+      const bg = idx === 0 ? '#10B981' : '#FACC15';
+      const pinIcon = L.divIcon({
+        html: `<div class="px-2 py-0.5 rounded-full text-[10px] font-black text-[#18181B] border-2 border-[#18181B] shadow-[2px_2px_0px_#18181B] whitespace-nowrap" style="background:${bg}">${label}</div>`,
+        className: 'planner-pin-icon',
+        iconSize: [54, 22],
+        iconAnchor: [27, 11]
+      });
+
+      const marker = L.marker([lat, lng], { icon: pinIcon }).addTo(state.map);
+      state.plannerPinMarkers.push(marker);
+
+      if (state.plannerPins.length >= 2) {
+        await fetchOsrmRoutePreview();
+      }
+    }
+
+    async function fetchOsrmRoutePreview() {
+      if (state.plannerPins.length < 2) return;
+      const coordsStr = state.plannerPins.map(p => `${p.lng.toFixed(5)},${p.lat.toFixed(5)}`).join(';');
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const distKm = (route.distance / 1000).toFixed(1);
+          const geoCoords = route.geometry.coordinates; // [lng, lat]
+
+          const latLngs = geoCoords.map(c => [c[1], c[0]]);
+          if (state.plannerPreviewOutline) state.map.removeLayer(state.plannerPreviewOutline);
+          if (state.plannerPreviewLine) state.map.removeLayer(state.plannerPreviewLine);
+
+          state.plannerPreviewOutline = L.polyline(latLngs, {
+            color: '#18181B',
+            weight: 10,
+            opacity: 0.9
+          }).addTo(state.map);
+
+          state.plannerPreviewLine = L.polyline(latLngs, {
+            color: '#34D399',
+            weight: 5,
+            opacity: 1
+          }).addTo(state.map);
+
+          // Construir waypoints con checkpoints en los pines marcados
+          state.plannerComputedWaypoints = geoCoords.map((c, i) => ({
+            lat: c[1],
+            lng: c[0],
+            alt: 1800,
+            name: i === 0 ? 'Punto de Salida' : i === geoCoords.length - 1 ? 'Destino Planificado' : `Carretera (${distKm} km)`,
+            road: `Ruta Planificada · ${distKm} km`,
+            checkpoint: i === 0 || i === geoCoords.length - 1,
+            bubble: i === 0 ? '🏍️ ¡Iniciando ruta planificada!' : i === geoCoords.length - 1 ? '🏁 ¡Destino alcanzado!' : null
+          }));
+          state.plannerComputedDistKm = distKm;
+
+          showToast(`Ruta trazada por carretera: ${distKm} km`, 'success');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('No se pudo calcular la carretera con OSRM.', 'error');
+      }
+    }
+
+    /**
+     * ============================================================================
+     * GRABACIÓN DIRECTA DE VIDEO (.WEBM) DESDE EL NAVEGADOR
+     * ============================================================================
+     */
+    async function toggleWebmRecording() {
+      if (state.isRecordingWebm) {
+        stopWebmRecording();
+        return;
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        showToast('Usa OBS Studio con el Modo OBS (Tecla H) para grabar en 16:9.', 'error');
+        return;
+      }
+
+      try {
+        showToast('Elige esta pestaña en la ventana del navegador para grabar...', 'info');
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: 60 },
+          audio: false,
+          preferCurrentTab: true
+        });
+
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9'
+          : 'video/webm';
+
+        state.recordedChunks = [];
+        state.mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 });
+
+        state.mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) state.recordedChunks.push(e.data);
+        };
+
+        state.mediaRecorder.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          const blob = new Blob(state.recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `TrocoYT_Cartoon_16x9_${Date.now()}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+
+          state.isRecordingWebm = false;
+          document.getElementById('webm-rec-dot').className = 'w-2.5 h-2.5 rounded-full bg-white border border-[#18181B]';
+          document.getElementById('webm-rec-label').textContent = 'Grabar .webm';
+          setObsCleanMode(false);
+          showToast('¡Clip .webm descargado listo para YouTube!', 'success');
+        };
+
+        stream.getVideoTracks()[0].onended = () => {
+          if (state.isRecordingWebm) stopWebmRecording();
+        };
+
+        state.isRecordingWebm = true;
+        document.getElementById('webm-rec-dot').className = 'w-2.5 h-2.5 rounded-full bg-yellow-300 animate-ping';
+        document.getElementById('webm-rec-label').textContent = 'Detener REC';
+
+        state.mediaRecorder.start();
+        startCountdownTake();
+      } catch (err) {
+        showToast('Captura cancelada. Puedes usar OBS con tecla H.', 'info');
+      }
+    }
+
+    function stopWebmRecording() {
+      if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+        state.mediaRecorder.stop();
+      }
+    }
+
+    /**
+     * ============================================================================
+     * INICIALIZACIÓN Y EVENTOS DE INTERFAZ
+     * ============================================================================
+     */
+    window.onload = function() {
+      initMap();
+      renderRoutesModalLists();
+      loadRoute(PRESET_ROUTES[0]);
+
+      // Controles de reproducción
+      document.getElementById('btn-play-pause').addEventListener('click', () => togglePlayPause());
+      document.getElementById('btn-restart').addEventListener('click', () => {
+        state.progress = 0;
+        state.lastCalloutMilestone = '';
+        updateSimulationFrame(true);
+        if (!state.isPlaying) togglePlayPause(true);
+      });
+      document.getElementById('btn-countdown-take').addEventListener('click', startCountdownTake);
+
+      // Scrubber
+      document.getElementById('timeline-slider').addEventListener('input', (e) => {
+        state.progress = parseInt(e.target.value, 10) / 1000;
+        updateSimulationFrame(false);
+      });
+
+      // Velocidades (0.5x, 1x, 2x, 4x)
+      document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.speedMultiplier = parseFloat(btn.dataset.speed);
+          document.querySelectorAll('.speed-btn').forEach(b => {
+            b.className = 'speed-btn px-2 py-1 rounded-lg text-[11px] font-mono font-bold text-gray-300 hover:text-white transition';
+          });
+          btn.className = 'speed-btn px-2 py-1 rounded-lg text-[11px] font-mono font-black bg-[#FF6B00] text-[#18181B] transition';
+        });
+      });
+
+      // Cámara
+      document.getElementById('btn-follow-moto').addEventListener('click', () => setFollowMoto(!state.followMoto));
+      document.getElementById('btn-fit-route').addEventListener('click', fitEntireRoute);
+
+      // Cambio de Estilo Visual Cartoon (Día / Atardecer / Satélite)
+      const layerOrder = ['day', 'sunset', 'satellite'];
+      document.getElementById('btn-map-layer').addEventListener('click', () => {
+        state.map.removeLayer(state.tileLayers[state.currentLayerKey].layer);
+        const nextIdx = (layerOrder.indexOf(state.currentLayerKey) + 1) % layerOrder.length;
+        state.currentLayerKey = layerOrder[nextIdx];
+        state.tileLayers[state.currentLayerKey].layer.addTo(state.map);
+        document.getElementById('layer-label').textContent = state.tileLayers[state.currentLayerKey].name;
+      });
+
+      // Modo OBS / Limpio
+      document.getElementById('btn-obs-mode').addEventListener('click', () => setObsCleanMode(true));
+
+      // Toggle Lower-Third YouTube
+      document.getElementById('btn-toggle-pill').addEventListener('click', () => {
+        state.showBroadcastPill = !state.showBroadcastPill;
+        document.body.classList.toggle('hide-broadcast-pill', !state.showBroadcastPill);
+        document.getElementById('pill-toggle-label').textContent = state.showBroadcastPill ? 'HUD YT: ON' : 'HUD YT: OFF';
+      });
+
+      // Grabación WebM
+      document.getElementById('btn-record-webm').addEventListener('click', toggleWebmRecording);
+
+      // Modal Mis Rutas & Timeline.json
+      const routesModal = document.getElementById('routes-modal');
+      document.getElementById('btn-open-routes-modal').addEventListener('click', () => {
+        renderRoutesModalLists();
+        routesModal.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-routes-modal').addEventListener('click', () => {
+        routesModal.classList.add('hidden');
+      });
+
+      const dropZone = document.getElementById('drop-zone-timeline');
+      const fileInput = document.getElementById('file-import-timeline');
+      dropZone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) parseTimelineOrGpxFile(e.target.files[0]);
+      });
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('bg-black/80');
+      });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-black/80'));
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-black/80');
+        if (e.dataTransfer.files[0]) parseTimelineOrGpxFile(e.dataTransfer.files[0]);
+      });
+
+      // Planificador de Rutas Futuras
+      document.getElementById('btn-toggle-planner').addEventListener('click', () => togglePlannerMode());
+      document.getElementById('btn-planner-exit').addEventListener('click', () => togglePlannerMode(false));
+      document.getElementById('btn-planner-clear').addEventListener('click', () => {
+        clearPlannerPins();
+        showToast('Puntos limpiados');
+      });
+      document.getElementById('btn-planner-undo').addEventListener('click', async () => {
+        if (state.plannerPins.length === 0) return;
+        state.plannerPins.pop();
+        const m = state.plannerPinMarkers.pop();
+        if (m) state.map.removeLayer(m);
+        if (state.plannerPreviewOutline) state.map.removeLayer(state.plannerPreviewOutline);
+        if (state.plannerPreviewLine) state.map.removeLayer(state.plannerPreviewLine);
+        if (state.plannerPins.length >= 2) await fetchOsrmRoutePreview();
+      });
+
+      const savePlannerModal = document.getElementById('save-planner-modal');
+      document.getElementById('btn-planner-save-open').addEventListener('click', () => {
+        if (!state.plannerComputedWaypoints || state.plannerComputedWaypoints.length < 2) {
+          showToast('Marca al menos 2 puntos en el mapa primero.', 'error');
+          return;
+        }
+        document.getElementById('planner-route-name-input').value = `Nueva Ruta (${state.plannerComputedDistKm} km)`;
+        savePlannerModal.classList.remove('hidden');
+      });
+      document.getElementById('btn-cancel-save-planner').addEventListener('click', () => savePlannerModal.classList.add('hidden'));
+      document.getElementById('btn-confirm-save-planner').addEventListener('click', () => {
+        const title = document.getElementById('planner-route-name-input').value.trim() || `Ruta Planificada (${state.plannerComputedDistKm} km)`;
+        const newRoute = {
+          id: 'plan-' + Date.now(),
+          title,
+          badge: `PLANIFICADA · ${state.plannerComputedDistKm} KM`,
+          subtitle: 'Trazada por carretera real (OSRM)',
+          waypoints: state.plannerComputedWaypoints
+        };
+        state.routes.unshift(newRoute);
+        savePlannerModal.classList.add('hidden');
+        togglePlannerMode(false);
+        loadRoute(newRoute);
+        showToast('¡Ruta guardada y lista para animar!', 'success');
+      });
+
+      // Atajos de teclado: [Espacio] Play/Pausa | [H] Modo OBS Limpio | [R] Intro 3-2-1
+      window.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'INPUT') return;
+        if (e.code === 'Space') {
+          e.preventDefault();
+          togglePlayPause();
+        } else if (e.key === 'h' || e.key === 'H' || e.code === 'Escape') {
+          setObsCleanMode(!state.obsCleanMode);
+        } else if (e.key === 'r' || e.key === 'R') {
+          startCountdownTake();
+        }
+      });
+    };
+  </script>
+</body>
+</html>
